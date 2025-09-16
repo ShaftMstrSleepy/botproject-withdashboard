@@ -1,27 +1,18 @@
-// commands/addplutus.js
 const Balance = require("../models/Balance");
-const config = require("../config.json");
 const logAction = require("../utils/logger");
+const isOwner = require("../utils/ownerGuard");
 
 module.exports = {
   name: "addplutus",
-  description: "Owner/Management: Add Plutus to a user",
+  description: "Owner only: Add Plutus to a user",
   async execute(message, args) {
-    // Permissions: owner or management role
-    if (
-      message.author.id !== config.ownerId &&
-      !message.member.roles.cache.has("1232894786684588062")
-    ) {
-      return message.reply("❌ Only the Owner or Management can add Plutus.");
+    if (!isOwner(message.author.id)) {
+      return message.reply("❌ This command is owner-only.");
     }
 
-    // Resolve target
-    let targetId;
-    if (!args[0]) return message.reply("Usage: `!addplutus @User 50`");
-    if (args[0].toLowerCase() === "myid") targetId = message.author.id;
-    else if (message.mentions.users.first()) targetId = message.mentions.users.first().id;
-    else targetId = args[0];
+    if (!args[0] || !args[1]) return message.reply("Usage: `!addplutus @User 50`");
 
+    const targetId = message.mentions.users.first()?.id || args[0];
     const amount = parseInt(args[1], 10);
     if (isNaN(amount)) return message.reply("Usage: `!addplutus @User 50`");
 

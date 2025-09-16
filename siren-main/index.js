@@ -1,6 +1,6 @@
 // index.js
 const fs = require("fs");
-const express = require("express"); // for local presence API
+const express = require("express");
 const {
   Client,
   Collection,
@@ -11,13 +11,16 @@ const mongoose = require("mongoose");
 require("dotenv").config();
 
 const config = require("./config.json");
-const GuildConfig = require("./models/GuildConfig");   // per-guild settings
+const GuildConfig = require("./models/GuildConfig");
 const Appeal = require("./models/Appeal");
 const Punishment = require("./models/Punishment");
 const Balance = require("./models/Balance");
 const Blacklist = require("./models/Blacklist");
 const logAction = require("./utils/logger");
 const errorLogger = require("./utils/errorLogger");
+
+// ➕ owner guard
+const isOwner = require("./utils/ownerGuard");
 
 const client = new Client({
   intents: [
@@ -35,6 +38,16 @@ for (const file of fs.readdirSync("./commands").filter(f => f.endsWith(".js"))) 
   const cmd = require(`./commands/${file}`);
   if (!cmd.name && !cmd.data) continue;
   client.commands.set(cmd.name || cmd.data?.name, cmd);
+}
+
+// Load subfolders (e.g., owner_commands, cstmrl_commands, staff_commands)
+for (const dir of ["owner_commands", "cstmrl_commands", "staff_commands"]) {
+  if (!fs.existsSync(`./${dir}`)) continue;
+  for (const file of fs.readdirSync(`./${dir}`).filter(f => f.endsWith(".js"))) {
+    const cmd = require(`./${dir}/${file}`);
+    if (!cmd.name && !cmd.data) continue;
+    client.commands.set(cmd.name || cmd.data?.name, cmd);
+  }
 }
 
 // ─── Ready Event (includes restart notification) ─────────────────
@@ -68,27 +81,21 @@ client.on("guildMemberAdd", async member => {
     });
 
     if (activeMute) {
-      // 🔁 pull per-guild settings from DB (instead of config.*)
-      const gCfg = await GuildConfig.findOne({ guildId: member.guild.id }).lean().catch(() => null);
+      // ⬇️ Per-guild mutedRoleId via GuildConfig; fallback to config.json if needed
+      const gcfg = await GuildConfig.findOne({ guildId: member.guild.id }).lean().catch(() => null);
+      const mutedRoleId = gcfg?.mutedRoleId || config.mutedRoleId;
 
-      // optional mutedRoleId in DB (top-level or under staffRoles if you want)
-      const mutedRoleId =
-        gCfg?.mutedRoleId ||
-        gCfg?.staffRoles?.mutedRoleId || // if you later store it here
-        null;
+      const muteRole = mutedRoleId ? member.guild.roles.cache.get(mutedRoleId) : null;
+      if (muteRole) await member.roles.add(muteRole).catch(() => {});
 
-      if (mutedRoleId) {
-        const muteRole = member.guild.roles.cache.get(mutedRoleId);
-        if (muteRole) await member.roles.add(muteRole).catch(() => {});
-      }
+      // ⬇️ Per-guild general log channel
+      const generalId =
+        (gcfg?.logChannels?.general && gcfg.logChannels.general[0]) ||
+        (config.logChannels && config.logChannels.general);
 
-      // general log channel: first of array logChannels.general
-      const generalId = Array.isArray(gCfg?.logChannels?.general) ? gCfg.logChannels.general[0] : null;
-      if (generalId) {
-        const general = member.guild.channels.cache.get(generalId);
-        if (general && general.isTextBased?.()) {
-          general.send(`🔇 Welcome back <@${member.id}> — your muted role has been restored.`);
-        }
+      const general = generalId ? member.guild.channels.cache.get(generalId) : null;
+      if (general) {
+        general.send(`🔇 Welcome back <@${member.id}> — your muted role has been restored.`);
       }
     }
   } catch (err) {
@@ -101,7 +108,7 @@ client.on("guildMemberAdd", async member => {
 client.on("messageCreate", async message => {
   if (message.author.bot || !message.guild) return;
 
-  // 🔑 Fetch custom prefix for this guild (fallback to default)
+  // 🔑 Per-guild prefix (fallback to default)
   let guildCfg = await GuildConfig.findOne({ guildId: message.guild.id }).catch(() => null);
   const prefix = guildCfg?.prefix || config.prefix;
 
@@ -110,11 +117,18 @@ client.on("messageCreate", async message => {
   const name = args.shift()?.toLowerCase();
   if (!name) return;
 
+  const command = client.commands.get(name);
+  if (!command) return;
+
+  // ✅ Owner-only gate (prefix)
+  if (command.ownerOnly && !isOwner(message.author.id)) {
+    return message.reply("❌ This command is owner-only.");
+  }
+
   // 🔒 ---- GLOBAL BLACKLIST CHECK ----
   try {
     const black = await Blacklist.findOne({ userId: message.author.id });
-    if (black) {
-      // allow only help & appeal
+    if (black && !isOwner(message.author.id)) { // owner bypasses blacklist
       if (!["help", "appeal"].includes(name)) {
         return message.reply({
           embeds: [{
@@ -145,16 +159,16 @@ client.on("messageCreate", async message => {
   }
   // ---- END BLACKLIST CHECK ----
 
-  const command = client.commands.get(name);
-  if (!command) return;
-
   try {
+    // Ensure Balance doc
     const exists = await Balance.findOne({ userId: message.author.id });
     if (!exists) await new Balance({ userId: message.author.id, balance: 0 }).save();
-    await command.execute(message, args, config, client);
+
+    // Pass both static config + guildCfg so commands can read per-guild ids
+    await command.execute(message, args, { ...config, guildCfg }, client);
   } catch (err) {
     console.error("Command error:", err);
-    await errorLogger(client, command.name, err);
+    await errorLogger(client, command?.name || "unknown", err);
     message.reply("❌ There was an error executing that command.");
   }
 });
@@ -164,10 +178,22 @@ client.on("interactionCreate", async interaction => {
   if (interaction.isChatInputCommand()) {
     const command = client.commands.get(interaction.commandName);
     if (!command) return;
+
+    // ✅ Owner-only gate (slash)
+    if (command.ownerOnly && !isOwner(interaction.user.id)) {
+      return interaction.reply({ content: "❌ This command is owner-only.", ephemeral: true });
+    }
+
     try {
       const exists = await Balance.findOne({ userId: interaction.user.id });
       if (!exists) await new Balance({ userId: interaction.user.id, balance: 0 }).save();
-      await command.execute(interaction);
+
+      // Load per-guild config if available
+      const guildCfg = interaction.guild
+        ? await GuildConfig.findOne({ guildId: interaction.guild.id }).lean().catch(() => null)
+        : null;
+
+      await command.execute(interaction, { ...config, guildCfg }, client);
     } catch (error) {
       console.error("Slash command error:", error);
       await errorLogger(client, interaction.commandName, error);
@@ -205,13 +231,15 @@ client.on("interactionCreate", async interaction => {
 
     if (appeal.status === "accepted") {
       try {
-        const gCfg = await GuildConfig.findOne({ guildId: interaction.guild.id }).lean().catch(() => null);
-        const mutedRoleId = gCfg?.mutedRoleId || gCfg?.staffRoles?.mutedRoleId || null;
-
         const member = await interaction.guild.members.fetch(appeal.userId).catch(() => null);
         if (member) {
-          if (mutedRoleId && member.roles.cache.has(mutedRoleId)) {
-            await member.roles.remove(mutedRoleId).catch(console.error);
+          // Per-guild mutedRoleId
+          const gcfg = await GuildConfig.findOne({ guildId: interaction.guild.id }).lean().catch(() => null);
+          const mutedRoleId = gcfg?.mutedRoleId || config.mutedRoleId;
+          const muteRole = mutedRoleId ? interaction.guild.roles.cache.get(mutedRoleId) : null;
+
+          if (muteRole && member.roles.cache.has(muteRole.id)) {
+            await member.roles.remove(muteRole).catch(console.error);
           }
           await member.send(`✅ Your appeal (case ${appeal.caseId}) has been accepted.`).catch(() => {});
         }
@@ -254,13 +282,11 @@ client.login(process.env.BOT_TOKEN);
 
 // ─── Presence API for Dashboard ─────────────────────────────────
 const presenceCounts = new Map();
-
 function updateGuildCounts(guild) {
-  const total = guild.memberCount;
+  const total = guild.memberCount || 0;
   const online = guild.members.cache.filter(m => m.presence?.status === "online").size;
   presenceCounts.set(guild.id, { online, total });
 }
-
 client.on("ready", () => {
   client.guilds.cache.forEach(g => updateGuildCounts(g));
   setInterval(() => client.guilds.cache.forEach(g => updateGuildCounts(g)), 60_000);
