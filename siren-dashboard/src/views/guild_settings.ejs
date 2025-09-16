@@ -1,0 +1,87 @@
+<!-- src/views/guild_settings.ejs -->
+<div style="text-align:center;">
+  <% if (guildInfo) { %>
+    <img
+      src="<%= guildInfo.iconURL || 'https://cdn.discordapp.com/embed/avatars/0.png' %>"
+      alt="Server Icon"
+      style="width:60px;height:60px;border-radius:50%;vertical-align:middle;">
+    <h3 style="display:inline-block;margin-left:10px;">
+      Settings for <%= guildInfo.name || cfg.guildName || cfg.guildId %>
+    </h3>
+  <% } else { %>
+    <h3>Settings for <%= cfg.guildName || cfg.guildId %></h3>
+  <% } %>
+</div>
+
+<form method="post" style="max-width:700px;margin:0 auto;">
+  <article>
+    <h4>Basics</h4>
+    <label>Guild Name
+      <input name="guildName" value="<%= cfg.guildName || '' %>">
+    </label>
+    <label>Prefix
+      <input name="prefix" value="<%= cfg.prefix || '!' %>">
+    </label>
+  </article>
+
+  <article>
+    <h4>Staff Roles</h4>
+    <% const staff = cfg.staffRoles || {}; %>
+    <% const safeRoles = roles || []; %>
+    <% [
+      {key:'base',label:'Base Staff'},
+      {key:'trialMod',label:'Trial Mod'},
+      {key:'mod',label:'Mod'},
+      {key:'seniorMod',label:'Senior Mod'},
+      {key:'retired',label:'Retired'},
+      {key:'management',label:'Management'}
+    ].forEach(rk => { %>
+      <label><%= rk.label %>
+        <select name="staff_<%= rk.key %>">
+          <option value="">None</option>
+          <% safeRoles.forEach(r => { %>
+            <option value="<%= r.id %>" <%= staff[rk.key] === r.id ? "selected" : "" %>>
+              <%= r.name %>
+            </option>
+          <% }); %>
+        </select>
+      </label>
+    <% }); %>
+  </article>
+
+  <article>
+    <h4>Log Channels (multi-select)</h4>
+    <% const logs = cfg.logChannels || {}; %>
+    <% const safeChannels = channels || []; %>
+    <% [
+      {key:'general',label:'General Channels'},
+      {key:'punishments',label:'Punishments'},
+      {key:'promotions',label:'Promotions'},
+      {key:'ownership',label:'Ownership'}
+    ].forEach(ch => { %>
+      <label><%= ch.label %>
+        <select class="multi" name="log_<%= ch.key %>" multiple>
+          <% safeChannels.forEach(c => { %>
+            <option value="<%= c.id %>" <%= (logs[ch.key] || []).includes(c.id) ? "selected" : "" %>>
+              #<%= c.name %>
+            </option>
+          <% }); %>
+        </select>
+      </label>
+    <% }); %>
+  </article>
+
+  <article>
+    <h4>Appeal Vote Threshold</h4>
+    <label>Accept Votes
+      <input name="vote_accept" type="number"
+             value="<%= (cfg.voteThreshold && cfg.voteThreshold.accept) || 3 %>">
+    </label>
+    <label>Deny Votes
+      <input name="vote_deny" type="number"
+             value="<%= (cfg.voteThreshold && cfg.voteThreshold.deny) || 3 %>">
+    </label>
+  </article>
+
+  <button type="submit">Save</button>
+</form>

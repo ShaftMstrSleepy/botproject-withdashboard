@@ -1,0 +1,80 @@
+<!-- src/views/appeal_form.ejs -->
+<div style="max-width:700px;margin:20px auto;color:#fff;">
+
+  <!-- Server header in darker block -->
+  <div style="background:#1f2023;padding:20px;border-radius:8px;margin-bottom:20px;
+              display:flex;align-items:center;gap:20px;">
+    <img src="<%= guild.iconURL %>" alt="Server Icon"
+         style="width:60px;height:60px;border-radius:50%;">
+    <div>
+      <h2 style="margin:0;"><%= guild.name %></h2>
+      <div style="background:#2b2d31;padding:6px 10px;border-radius:6px;
+                  margin-top:6px;display:inline-flex;align-items:center;gap:14px;">
+        <!-- Green dot + count + 'online' -->
+        <span style="display:flex;align-items:center;gap:6px;">
+          <span style="width:10px;height:10px;border-radius:50%;
+                       background:#23942c;display:inline-block;"></span>
+          <%= guild.onlineCount %> online
+        </span>
+        <!-- Grey dot + count + 'offline' -->
+        <span style="display:flex;align-items:center;gap:6px;">
+          <span style="width:10px;height:10px;border-radius:50%;
+                       background:#747f8d;display:inline-block;"></span>
+          <%= guild.offlineCount %> offline
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Welcome message with black outline -->
+  <div style="background:#2b2d31;padding:20px;border-radius:8px;margin-bottom:20px;
+              border:2px solid #000;">
+    <p style="margin:0;">
+      <%= guildWelcomeMessage || "Welcome to the appeals page." %>
+    </p>
+  </div>
+
+  <!-- Active punishments block -->
+  <div style="background:#2b2d31;padding:20px;border-radius:8px;margin-bottom:20px;">
+    <h4 style="margin-top:0;">Your Active Punishments</h4>
+    <% if (punishments.length) { %>
+      <% punishments.forEach(p => { %>
+        <p><strong><%= p.type %></strong> — <%= p.reason %> (<%= p.date %>)
+           – Appeal Allowed: <%= p.appealable ? "Yes" : "No" %></p>
+      <% }) %>
+    <% } else { %>
+      <p>No active punishments.</p>
+    <% } %>
+  </div>
+
+  <!-- Appeal form block -->
+  <div style="background:#2b2d31;padding:20px;border-radius:8px;">
+    <form method="post" action="/appeals/<%= guild.id %>/new">
+      <label style="display:block;margin-bottom:15px;">Category
+        <select name="category" required
+                style="width:100%;padding:8px;border-radius:8px;
+                       background:#1f2023;color:#fff;border:none;">
+          <% (config.categories && config.categories.length
+                ? config.categories
+                : ["Ban","Mute","Warn"]).forEach(c => { %>
+            <option><%= c %></option>
+          <% }) %>
+        </select>
+      </label>
+
+      <label style="display:block;margin-bottom:15px;">Reason
+        <textarea name="reason" required
+                  placeholder="Explain why you are appealing"
+                  style="width:100%;height:140px;border-radius:8px;
+                         background:#1f2023;color:#fff;border:none;
+                         padding:10px;resize:vertical;"></textarea>
+      </label>
+
+      <button type="submit"
+              style="background:#5865F2;color:#fff;border:none;
+                     padding:10px 18px;border-radius:8px;cursor:pointer;">
+        Submit Appeal
+      </button>
+    </form>
+  </div>
+</div>

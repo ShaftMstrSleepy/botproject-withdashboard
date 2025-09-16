@@ -1,0 +1,26 @@
+<!-- src/views/guilds.ejs -->
+<div style="
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  height:calc(100vh - 60px); /* full height minus top nav */
+  text-align:center;
+">
+  <h2 style="margin-bottom:20px;">Select a Guild to Manage</h2>
+
+  <form method="post" action="/guilds/select">
+    <select name="guildId" required
+            style="padding:10px 20px;font-size:16px;border-radius:8px;">
+      <option value="" disabled selected>Choose a server…</option>
+      <% guilds.forEach(g => { %>
+        <option value="<%= g.id %>"><%= g.name %></option>
+      <% }); %>
+    </select>
+    <button type="submit"
+            style="margin-left:10px;padding:10px 20px;border-radius:8px;
+                   background:#5865F2;color:#fff;border:none;cursor:pointer;">
+      Manage
+    </button>
+  </form>
+</div>

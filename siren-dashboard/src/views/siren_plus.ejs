@@ -1,0 +1,94 @@
+<!-- src/views/siren_plus.ejs -->
+<div style="max-width:1100px;margin:20px auto;color:#fff;">
+
+  <!-- Heading -->
+  <h2 style="margin:0 0 16px 0;">Siren Plus</h2>
+  <p style="margin:0 0 24px 0;color:#bbb;">Unlock premium features for your server.</p>
+
+  <!-- Active subscriptions -->
+  <div style="background:#1f2023;padding:16px;border-radius:8px;margin-bottom:20px;">
+    <h3 style="margin-top:0;">Your Subscriptions</h3>
+    <% if (subs && subs.length) { %>
+      <% subs.forEach(s => { %>
+        <div style="background:#2b2d31;padding:12px;border-radius:8px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div><strong>Guild:</strong> <%= s.guildName || s.guildId %></div>
+            <div><strong>Plan:</strong> <%= s.planLabel %></div>
+            <div>
+              <strong>Status:</strong> <%= s.status %>
+              <% if (s.cancelAtPeriodEnd) { %>
+                (cancels at end of current period)
+              <% } %>
+            </div>
+            <div>
+              <strong>Renews/Ends:</strong>
+              <%= s.currentPeriodEndStr %>
+            </div>
+          </div>
+          <div>
+            <% if (s.canCancel) { %>
+              <form method="post" action="/siren_plus/cancel/<%= s.subscriptionId %>">
+                <button type="submit" style="background:#f04747;color:#fff;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;">
+                  Cancel at period end
+                </button>
+              </form>
+            <% } %>
+          </div>
+        </div>
+      <% }) %>
+    <% } else { %>
+      <p>No active subscriptions.</p>
+    <% } %>
+  </div>
+
+  <!-- Two side-by-side boxes -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+    <!-- Box 1: Siren Plus roles -->
+    <div style="background:#1f2023;padding:20px;border-radius:8px;">
+      <div style="text-align:center;margin-bottom:10px;">
+        <img src="<%= botAvatarURL || 'https://cdn.discordapp.com/embed/avatars/1.png' %>"
+             style="width:72px;height:72px;border-radius:50%;">
+      </div>
+      <h3 style="text-align:center;margin:6px 0 12px 0;">Siren Plus</h3>
+      <ul style="margin:0 0 12px 18px;">
+        <li>Custom role commands (add/remove role, transferrole, cstmrl)</li>
+        <li>Per-role pricing in Plutus</li>
+        <li>Server owner earns 10% commission on Plutus purchases via your code</li>
+      </ul>
+      <p style="color:#bbb;margin-bottom:14px;">
+        All custom role purchases use your bot currency, Plutus. Your server receives a 10% commission
+        on all Plutus purchases made using your server’s unique purchase code.
+      </p>
+      <form method="post" action="/siren_plus/checkout">
+        <input type="hidden" name="plan" value="roles">
+        <button type="submit"
+                style="width:100%;background:#5865F2;color:#fff;border:none;padding:10px;border-radius:8px;cursor:pointer;">
+          Subscribe for $7.99 / month
+        </button>
+      </form>
+    </div>
+
+    <!-- Box 2: Troll Cmds -->
+    <div style="background:#1f2023;padding:20px;border-radius:8px;">
+      <div style="text-align:center;margin-bottom:10px;">
+        <img src="<%= botAvatarURL || 'https://cdn.discordapp.com/embed/avatars/1.png' %>"
+             style="width:72px;height:72px;border-radius:50%;">
+      </div>
+      <h3 style="text-align:center;margin:6px 0 12px 0;">Troll Cmds</h3>
+      <ul style="margin:0 0 12px 18px;">
+        <li><code>stfu</code> – silently deletes a targeted user’s messages until toggled off</li>
+        <li><code>brainrt</code> – watches for keywords; replies with a joke & gives 1-minute timeout</li>
+        <li>MORE COMING SOON!!!</li>
+      </ul>
+      <form method="post" action="/siren_plus/checkout">
+        <input type="hidden" name="plan" value="troll">
+        <button type="submit"
+                style="width:100%;background:#5865F2;color:#fff;border:none;padding:10px;border-radius:8px;cursor:pointer;">
+          Subscribe for $4.99 / month
+        </button>
+      </form>
+    </div>
+
+  </div>
+</div>

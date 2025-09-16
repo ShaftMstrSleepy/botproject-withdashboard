@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Siren Dashboard</title>
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+  <!-- Main Content -->
+  <div class="main-content">
+    <%- body %>
+  </div>
+
+  <!-- Multi-select enhancer -->
+  <script src="/js/multi.js"></script>
+</body>
+</html>
+
+<body>
+  <!-- Top Nav (sticky) -->
+  <div class="navbar">
+    <h1>Siren Dashboard</h1>
+    <% if (user) { %>
+      <div class="user-menu">
+        <img src="<%= user.avatarURL %>" alt="Avatar" class="user-avatar">
+        <span class="username"><%= user.global_name || user.username %></span>
+        <div class="user-dropdown">
+          <a href="/guilds">Manage Servers</a>
+          <a href="/billing">Purchase Plutus</a>
+          <a href="/appeals">Create Appeal</a>
+          <a href="/auth/logout">Logout</a>
+        </div>
+      </div>
+    <% } else { %>
+      <a href="/auth/login">Login</a>
+    <% } %>
+  </div>
+
+  <!-- Left Sidebar (only after login) -->
+  <% if (user) { %>
+    <div class="sidebar">
+      <a href="/general-settings">General Settings</a>
+      <a href="/commands">Commands</a>
+      <a href="/logging">Logging</a>
+    </div>
+  <% } %>
+
+  

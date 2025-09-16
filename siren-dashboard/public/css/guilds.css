@@ -1,0 +1,31 @@
+body {
+  background-color: #4a4f5a; /* blue-grey heavy on grey */
+  color: #ffffff;
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+
+.main-header {
+  padding: 20px;
+}
+
+.guilds-container {
+  margin-top: 60px;
+}
+
+.bot-avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  margin-bottom: 20px;
+}
+
+select {
+  padding: 10px;
+  font-size: 16px;
+  border-radius: 6px;
+  border: none;
+}
+
