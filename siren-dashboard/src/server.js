@@ -1,11 +1,14 @@
 // src/server.js
+import dotenv from "dotenv";
+// ✅ Force load .env explicitly (absolute path is safest with PM2)
+dotenv.config({ path: "/opt/botproject-withdashboard/siren-dashboard/.env" });
+
 import express from "express";
 import session from "express-session";
 import MongoStore from "connect-mongo";
 import path from "path";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import expressLayouts from "express-ejs-layouts";
 
@@ -17,7 +20,6 @@ import appealRoutes from "./routes/appeals.js";
 // Mongo connection
 import { connectDB } from "./config/db.js";
 
-dotenv.config();
 console.log("DISCORD_CLIENT_ID at startup:", process.env.DISCORD_CLIENT_ID);
 await connectDB();
 
@@ -52,17 +54,15 @@ app.use(
     cookie: {
       httpOnly: true,
       sameSite: "lax",
-      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      maxAge: 1000 * 60 * 60 * 24 * 7,
     },
   })
 );
 
 // ✅ Make `user` (with animated avatar) & bot avatar available to ALL templates
 app.use((req, res, next) => {
-  // Logged-in user (from Discord OAuth)
   const u = req.session?.user;
   if (u) {
-    // ensure we correctly build animated or static avatar URL
     const isAnimated = u.avatar && String(u.avatar).startsWith("a_");
     const ext = isAnimated ? "gif" : "png";
     const avatarURL = u.avatar
@@ -78,18 +78,15 @@ app.use((req, res, next) => {
   } else {
     res.locals.user = null;
   }
-
-  // Bot avatar for the landing/login page
   res.locals.botAvatarURL =
     process.env.BOT_AVATAR_URL || "https://cdn.discordapp.com/embed/avatars/1.png";
-
   next();
 });
 
 // ----- Security & parsing -----
 app.use(
   helmet({
-    contentSecurityPolicy: false, // keep simple; allow external Discord images
+    contentSecurityPolicy: false,
   })
 );
 app.use(express.urlencoded({ extended: true }));
@@ -99,7 +96,7 @@ app.use(express.json());
 const limiter = rateLimit({ windowMs: 60 * 1000, max: 60 });
 app.use(limiter);
 
-// ✅ Make `user` (with animated avatar) & bot avatar available to ALL templates
+// ✅ Duplicate middleware kept as-is
 app.use((req, res, next) => {
   const u = req.session?.user;
   if (u) {
@@ -118,20 +115,14 @@ app.use((req, res, next) => {
   } else {
     res.locals.user = null;
   }
-
   res.locals.botAvatarURL =
     process.env.BOT_AVATAR_URL || "https://cdn.discordapp.com/embed/avatars/1.png";
-
   next();
 });
 
 // ----- Routes -----
-// If logged in, immediately send to /guilds.
-// If not logged in, render home with minimal layout (no top bar/sidebar).
 app.get("/", (req, res) => {
-  if (req.session?.user) {
-    return res.redirect("/guilds");
-  }
+  if (req.session?.user) return res.redirect("/guilds");
   res.render("home", { layout: "layout_minimal" });
 });
 
