@@ -18,12 +18,16 @@ import appealRoutes from "./routes/appeals.js";
 import { connectDB } from "./config/db.js";
 
 dotenv.config();
+console.log("DISCORD_CLIENT_ID at startup:", process.env.DISCORD_CLIENT_ID);
 await connectDB();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+
+// ✅ Trust proxy so secure cookies & HTTPS redirects work
+app.set("trust proxy", 1);
 
 // ----- View engine & layouts -----
 app.set("view engine", "ejs");
@@ -94,6 +98,32 @@ app.use(express.json());
 // ----- Rate limiting -----
 const limiter = rateLimit({ windowMs: 60 * 1000, max: 60 });
 app.use(limiter);
+
+// ✅ Make `user` (with animated avatar) & bot avatar available to ALL templates
+app.use((req, res, next) => {
+  const u = req.session?.user;
+  if (u) {
+    const isAnimated = u.avatar && String(u.avatar).startsWith("a_");
+    const ext = isAnimated ? "gif" : "png";
+    const avatarURL = u.avatar
+      ? `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.${ext}?size=128`
+      : "https://cdn.discordapp.com/embed/avatars/0.png";
+
+    res.locals.user = {
+      id: u.id,
+      username: u.username,
+      global_name: u.global_name || u.username,
+      avatarURL,
+    };
+  } else {
+    res.locals.user = null;
+  }
+
+  res.locals.botAvatarURL =
+    process.env.BOT_AVATAR_URL || "https://cdn.discordapp.com/embed/avatars/1.png";
+
+  next();
+});
 
 // ----- Routes -----
 // If logged in, immediately send to /guilds.
