@@ -1,7 +1,7 @@
 // src/routes/auth.js
 import { Router } from "express";
 import {
-  getOAuthUrl,
+  getOAuthUrl,        // now backed by getLoginUrl() and uses env CALLBACK_URL internally
   exchangeCode,
   getUser,
   getUserGuilds,
@@ -11,9 +11,9 @@ import {
 const router = Router();
 
 // ----- Login: redirect to Discord OAuth -----
-router.get("/login", (req, res) => {
-  // Ensure getOAuthUrl() uses process.env.CALLBACK_URL
-  return res.redirect(getOAuthUrl(process.env.CALLBACK_URL));
+router.get("/login", (_req, res) => {
+  // No param needed; getOAuthUrl() reads process.env.CALLBACK_URL
+  return res.redirect(getOAuthUrl());
 });
 
 // ----- OAuth callback -----
@@ -35,7 +35,7 @@ router.get("/callback", async (req, res) => {
       .map(g => g.id);
 
     req.session.guildsForAppeals = guilds
-      .filter(g => g.permissions)
+      .filter(g => g.permissions) // user is a member
       .map(g => g.id);
 
     return res.redirect("/guilds");
