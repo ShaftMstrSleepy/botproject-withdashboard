@@ -1,0 +1,5 @@
+#!/bin/sh
+if git diff --cached --name-only | grep -E "\.env$|readme\.txt|node_modules"; then
+  echo "? Secret or node_modules detected in commit! Aborting."
+  exit 1
+fi
