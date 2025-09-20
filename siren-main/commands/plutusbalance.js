@@ -3,8 +3,8 @@ const Balance = require("../models/PlutusBalance");
 
 module.exports = {
   name: "plutusbalance",
-  aliases: ["pbal"],
-  description: "Check a user’s Plutus balance. Usage: !balance [@user|ID|myid]",
+  aliases: ["pbal"],  // ✅ this makes !pbal work exactly the same
+  description: "Check a user’s Plutus balance. Usage: !plutusbalance [@user|ID|myid]",
   async execute(message, args) {
     // Allow "myid" shortcut
     let targetId;
@@ -17,7 +17,7 @@ module.exports = {
     }
 
     const user = await message.client.users.fetch(targetId).catch(() => null);
-    if (!user) return message.reply("⚠️ Invalid user.");
+    if (!user) return message.reply(":warning: Invalid user.");
 
     let bal = await Balance.findOne({ userId: user.id });
     if (!bal) bal = await Balance.create({ userId: user.id, balance: 0 });

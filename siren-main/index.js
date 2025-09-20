@@ -72,6 +72,30 @@ client.on("guildMemberAdd", async member => {
       console.log(`💾 Created balance record for ${member.user.tag}`);
     }
 
+    // ─── Ensure Guild + Member docs on join ──────────────────────────
+client.on("guildCreate", async guild => {
+  try {
+    // create GuildConfig if missing
+    const gcfg = await GuildConfig.findOne({ guildId: guild.id });
+    if (!gcfg) {
+      await GuildConfig.create({ guildId: guild.id, guildName: guild.name });
+      console.log(`💾 Added guild record for ${guild.name}`);
+    }
+    // create balance docs for every current member
+    const PlutusBalance = require("./models/PlutusBalance");
+    guild.members.fetch().then(members => {
+      members.forEach(async m => {
+        if (m.user.bot) return;
+        const exists = await PlutusBalance.findOne({ userId: m.id });
+        if (!exists) await PlutusBalance.create({ userId: m.id, balance: 0 });
+      });
+    });
+  } catch (e) {
+    console.error("guildCreate insert error:", e);
+    await errorLogger(client, "guildCreate", e);
+  }
+});
+
     // 🔄 Reapply mute if user left while muted
     const activeMute = await Punishment.findOne({
       userId: member.id,
