@@ -9,6 +9,8 @@ module.exports = {
     try {
       const roles = await CustomRole.find({
         claimed: true, // show only claimed roles
+        guildId: message.guild.id,
+        userId: message.author.id,
         $or: [{ ownerId: message.author.id }, { coOwners: message.author.id }]
       });
 

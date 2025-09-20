@@ -5,6 +5,7 @@ const logAction = require("../utils/logger");
 
 module.exports = {
   name: "purgerole",
+  aliases: ["purgerl"],
   description: "Purge a custom role by its code name (cost: 5 Plutus)",
   async execute(message, args) {
     const code = args[0]?.toLowerCase();
@@ -15,6 +16,7 @@ module.exports = {
     // ── Locate role ownership by guild + code ──
     const ownership = await RoleOwnership.findOne({
       guildId: message.guild.id,
+      userId: message.author.id,
       code
     });
     if (!ownership) {

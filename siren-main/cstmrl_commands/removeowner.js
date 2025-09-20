@@ -19,7 +19,7 @@ module.exports = {
       return message.reply("⚠️ Usage: `!removeowner <codeName>`");
     }
 
-    const role = await CustomRole.findOne({ codeName: code });
+    const role = await CustomRole.findOne({ userId: message.author.id, guildId: message.guild.id, codeName: code });
     if (!role) {
       return message.reply(`❌ No custom role found for code \`${code}\`.`);
     }

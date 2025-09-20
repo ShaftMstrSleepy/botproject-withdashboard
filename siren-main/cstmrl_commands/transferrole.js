@@ -4,6 +4,7 @@ const errorLogger = require("../utils/errorLogger");
 
 module.exports = {
   name: "transferrole",
+  aliases: ["transferrl"],
   description: "!transferrole <codeName> <@newOwner|userID> – Transfer full ownership of a custom role",
   async execute(message, args) {
     try {
@@ -15,7 +16,7 @@ module.exports = {
         return message.reply("⚠️ Usage: !transferrole <codeName> <@user|userID>");
 
       // Look up the role in DB by codeName
-      const record = await CustomRole.findOne({ codeName: code });
+      const record = await CustomRole.findOne({ userId: message.author.id, guildId: message.guild.id, codeName: code });
       if (!record) return message.reply("❌ No custom role found for that code.");
 
       // Only the current owner can transfer

@@ -12,7 +12,7 @@ module.exports = {
     const role = message.guild.roles.cache.get(roleId);
     if (!role) return message.reply('⚠️ Invalid role ID.');
 
-    const ownership = await RoleOwnership.findOne({ guildId: message.guild.id, roleId });
+    const ownership = await RoleOwnership.findOne({ guildId: message.guild.id, roleId, userId: message.author.id });
     if (!ownership) return message.reply('❌ No ownership found for this role.');
 
     if (ownership.ownerId !== message.author.id) return message.reply('❌ Only the owner can add co-owners.');

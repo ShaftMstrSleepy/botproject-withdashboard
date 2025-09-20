@@ -5,6 +5,7 @@ const errorLogger = require("../utils/errorLogger");
 
 module.exports = {
   name: "removestaff",
+  aliases: ["rmvstaff"],
   description: "Completely remove a staff member from the staff database and roles",
   async execute(message, args, cfg, client) {
     try {

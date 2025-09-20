@@ -4,13 +4,14 @@ const errorLogger = require("../utils/errorLogger");
 
 module.exports = {
   name: "claimrole",
+  aliases: ["claimrl"],
   description: "!claimrole <codeName> – Claim purchased role by code name",
   async execute(message, args) {
     try {
       const code = args[0]?.toLowerCase();
       if (!code) return message.reply("⚠️ Usage: !claimrole <codeName>");
 
-      const record = await CustomRole.findOne({ codeName: code });
+      const record = await CustomRole.findOne({ userId: message.author.id, guildId: message.guild.id, codeName: code });
       if (!record) return message.reply("❌ Invalid code name.");
       if (record.claimed)
         return message.reply("❌ This role has already been claimed.");

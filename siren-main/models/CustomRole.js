@@ -5,6 +5,7 @@ const CustomRoleSchema = new mongoose.Schema({
   roleId:   { type: String, required: true },
   ownerId:  { type: String, default: "" },       // blank until claimed
   coOwners: { type: [String], default: [] },
+  guildId: { type: String, required: true },
   claimed:  { type: Boolean, default: false }    // NEW: must be true to appear in !cstmrl
 });
 

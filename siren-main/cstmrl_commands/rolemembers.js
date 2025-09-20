@@ -4,6 +4,7 @@ const errorLogger = require("../utils/errorLogger");
 
 module.exports = {
   name: "rolemembers",
+  aliases: ["rlmembers"],
   description: "DM the role owner a list of all members with the role (by code name)",
   usage: "!rolemembers <codeName>",
   async execute(message, args, config, client) {
@@ -14,7 +15,7 @@ module.exports = {
       }
 
       // Fetch role record from DB
-      const roleDoc = await CustomRole.findOne({ codeName: codeName.toLowerCase() });
+      const roleDoc = await CustomRole.findOne({ userId: message.author.id, guildId: message.guild.id, codeName: codeName.toLowerCase() });
       if (!roleDoc) {
         return message.reply("❌ No custom role found with that code name.");
       }

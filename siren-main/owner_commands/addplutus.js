@@ -4,6 +4,7 @@ const isOwner = require("../utils/ownerGuard");
 
 module.exports = {
   name: "addplutus",
+  aliases: ["addp"],
   description: "Owner only: Add Plutus to a user",
   async execute(message, args) {
     if (!isOwner(message.author.id)) {

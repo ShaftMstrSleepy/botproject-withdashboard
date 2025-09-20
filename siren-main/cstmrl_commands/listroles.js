@@ -5,6 +5,7 @@ const config = require("../config");
 
 module.exports = {
   name: "listroles",
+  aliases: ["listrl"],
   description: "!listroles – Show all custom roles with owner & co-owner details",
   async execute(message) {
     // ── Only Owner or Management ──
@@ -16,7 +17,7 @@ module.exports = {
     }
 
     // ── Fetch roles ──
-    const roles = await CustomRole.find().sort({ codeName: 1 });
+    const roles = await CustomRole.find({ userId: message.author.id, guildId: message.guild.id }).sort({ codeName: 1 });
     if (!roles.length) {
       return message.reply("ℹ️ No custom roles are stored in the database.");
     }

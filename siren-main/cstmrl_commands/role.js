@@ -13,7 +13,7 @@ module.exports = {
       if (!code || !target)
         return message.reply("⚠️ Usage: !role <codeName> <@user|userID>");
 
-      const record = await CustomRole.findOne({ codeName: code });
+      const record = await CustomRole.findOne({ userId: message.author.id, guildId: message.guild.id, codeName: code });
       if (!record) return message.reply("❌ No role found for that code.");
 
       if (

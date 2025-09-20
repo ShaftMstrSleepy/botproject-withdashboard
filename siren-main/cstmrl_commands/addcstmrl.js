@@ -8,7 +8,7 @@ module.exports = {
   async execute(message, args) {
     try {
       if (!message.guild) return;
-      const guildCfg = await GuildConfig.findOne({ guildId: message.guild.id });
+      const guildCfg = await GuildConfig.findOne({ guildId: message.guild.id, userId: message.author.id });
       const member = message.member;
 
       // Allow bot owner or server owner

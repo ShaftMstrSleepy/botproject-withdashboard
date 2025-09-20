@@ -4,6 +4,7 @@ const isOwner = require("../utils/ownerGuard");
 
 module.exports = {
   name: "removeplutus",
+  aliases: ["rmvp"],
   description: "Owner only: Remove Plutus from a user",
   async execute(message, args) {
     if (!isOwner(message.author.id)) {
