@@ -1,6 +1,6 @@
 const Staff = require('../models/Staff');
 const logAction = require('../utils/logger');
-const config = require('../config.json');
+const config = require("../config");
 
 module.exports = {
   name: 'addstaff',

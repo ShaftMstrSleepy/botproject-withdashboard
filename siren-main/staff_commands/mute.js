@@ -2,7 +2,7 @@ const { v4: uuidv4 } = require("uuid");
 const Punishment = require("../models/Punishment");
 const logAction = require("../utils/logger");
 const errorLogger = require("../utils/errorLogger");
-const config = require("../config.json");
+const config = require("../config");
 const { hasRequiredRank } = require("../utils/hasRank");
 
 module.exports = {

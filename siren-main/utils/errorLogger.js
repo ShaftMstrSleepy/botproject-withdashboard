@@ -1,10 +1,10 @@
 // utils/errorLogger.js
 const { EmbedBuilder } = require("discord.js");
-const config = require("../config.json");
 
+// Send errors to the Discord channel ID stored in .env as ERROR_ID
 module.exports = async function errorLogger(client, context, err) {
   try {
-    const channelId = config.logChannels?.errors;
+    const channelId = process.env.ERROR_ID;
     if (!channelId) return;
 
     const channel = await client.channels.fetch(channelId).catch(() => null);

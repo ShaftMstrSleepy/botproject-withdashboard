@@ -1,5 +1,5 @@
 const { EmbedBuilder } = require("discord.js");
-const config = require("../config.json");
+const config = require("../config");
 const errorLogger = require("../utils/errorLogger");
 const logAction = require("../utils/logger");
 

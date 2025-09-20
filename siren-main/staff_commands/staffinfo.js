@@ -1,6 +1,6 @@
 const { EmbedBuilder } = require("discord.js");
 const Staff = require("../models/Staff");
-const config = require("../config.json");
+const config = require("../config");
 
 module.exports = {
   name: "staffinfo",

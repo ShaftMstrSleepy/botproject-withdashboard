@@ -7,7 +7,7 @@ module.exports = {
   description: "Owner only: Remove Plutus from a user",
   async execute(message, args) {
     if (!isOwner(message.author.id)) {
-      return message.reply("❌ This command is owner-only.");
+      return message.reply("❌ Why even try? Owner Only.");
     }
 
     if (!args[0] || !args[1]) return message.reply("Usage: `!removeplutus @User 25`");

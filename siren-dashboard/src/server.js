@@ -1,7 +1,10 @@
 // src/server.js
 import dotenv from "dotenv";
-// ✅ Force load .env explicitly (absolute path is safest with PM2)
 dotenv.config({ path: "/opt/botproject-withdashboard/siren-dashboard/.env" });
+
+console.log("DEBUG CLIENT_ID:", process.env.DISCORD_CLIENT_ID);
+console.log("[ENV CHECK] CLIENT_ID:", process.env.DISCORD_CLIENT_ID);
+console.log("[ENV CHECK] CALLBACK_URL:", process.env.CALLBACK_URL || process.env.DISCORD_REDIRECT_URI);
 
 import express from "express";
 import session from "express-session";
@@ -22,6 +25,7 @@ import { connectDB } from "./config/db.js";
 
 console.log("DISCORD_CLIENT_ID at startup:", process.env.DISCORD_CLIENT_ID);
 await connectDB();
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -44,7 +48,7 @@ app.use(express.static(path.join(__dirname, "../public")));
 app.use(
   session({
     name: "siren.sid",
-    secret: process.env.SESSION_SECRET || "change_me",
+    secret: process.env.SESSION_SECRET || "LoveLove",
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({
@@ -139,5 +143,8 @@ app.use((err, req, res, next) => {
 // ----- Start server -----
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () =>
-  console.log(`🌐 Dashboard running on http://localhost:${PORT}`)
+  console.log(
+    `🌐 Dashboard running behind proxy on ${process.env.BASE_URL || `http://localhost:${PORT}`}`
+  )
 );
+

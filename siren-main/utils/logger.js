@@ -1,9 +1,11 @@
+// utils/logger.js
 const { EmbedBuilder } = require("discord.js");
-const config = require("../config.json");
+const config = require("../config"); // now reads from .env
 
 module.exports = async function logAction(client, key, text) {
   try {
-    const channelId = config.logChannels?.[key];
+    // look up channel ID from env-driven config (GuildConfig can override per guild)
+    const channelId = config.LOG_CHANNELS?.[key] || process.env[`LOG_${key.toUpperCase()}_ID`];
     if (!channelId) return;
 
     const channel = await client.channels.fetch(channelId).catch(() => null);

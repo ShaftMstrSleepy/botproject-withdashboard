@@ -9,7 +9,7 @@ module.exports = {
   description: "Owner only: Remove a user from the blacklist",
   async execute(message, args) {
     if (!isOwner(message.author.id)) {
-      return message.reply("❌ This command is owner-only.");
+      return message.reply("❌ You wish LOL Owner Only.");
     }
 
     const user =

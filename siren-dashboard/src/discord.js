@@ -3,30 +3,33 @@ import axios from "axios";
 
 const DISCORD_API = "https://discord.com/api/v10";
 
-// =============== ENV ===============
-const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
-const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
-const CALLBACK_URL = (process.env.CALLBACK_URL || "").trim(); // e.g. https://sirenmod.com/auth/callback
+// =============== ENV (normalized) ===============
+const CLIENT_ID = (process.env.DISCORD_CLIENT_ID || "").trim();
+const CLIENT_SECRET = (process.env.DISCORD_CLIENT_SECRET || "").trim();
+// accept either CALLBACK_URL or DISCORD_REDIRECT_URI
+const CALLBACK_URL = (process.env.CALLBACK_URL || process.env.DISCORD_REDIRECT_URI || "").trim();
 
 if (!CLIENT_ID || !CLIENT_SECRET || !CALLBACK_URL) {
-  console.error("[discord.js] Missing required env: DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, CALLBACK_URL");
-  // Don't throw here; app can still boot, but login will fail until fixed.
+  console.error(
+    `[discord.js] Missing required env: ` +
+    `DISCORD_CLIENT_ID(${!!CLIENT_ID}), DISCORD_CLIENT_SECRET(${!!CLIENT_SECRET}), CALLBACK_URL(${!!CALLBACK_URL})`
+  );
 }
 
 // =============== OAUTH URL (LOGIN ONLY) ===============
-// IMPORTANT: This is for **user login** to the dashboard.
-// Keep the scopes to what's needed for login (identify, guilds). Do NOT include "bot" here.
-// If you want a bot invite link, use a separate function.
+// Keep scopes minimal for dashboard login; don't include "bot" here.
 export function getLoginUrl() {
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
-    redirect_uri: CALLBACK_URL,  // MUST EXACTLY MATCH the one in the Discord Dev Portal
+    redirect_uri: CALLBACK_URL,     // MUST match Discord portal exactly
     response_type: "code",
-    scope: "identify guilds",    // keep clean for dashboard login
-    prompt: "none",
+    scope: "identify guilds",
+    // remove "prompt=none" to allow the normal consent/login UI
+    // prompt: "consent", // optional; leaving it out is fine
   });
   return `https://discord.com/api/oauth2/authorize?${params.toString()}`;
 }
+
 
 // Backward compatibility with existing import name:
 export const getOAuthUrl = getLoginUrl;

@@ -1,5 +1,5 @@
 const Staff = require("../models/Staff");
-const config = require("../config.json");
+const config = require("../config");
 const logAction = require("../utils/logger");
 const errorLogger = require("../utils/errorLogger");
 

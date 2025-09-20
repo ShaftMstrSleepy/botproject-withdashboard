@@ -1,6 +1,6 @@
 // commands/addrlowner.js
 const CustomRole = require("../models/CustomRole");
-const config = require("../config.json");
+const config = require("../config");
 
 module.exports = {
   name: "addrlowner",

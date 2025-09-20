@@ -1,7 +1,7 @@
 // commands/listroles.js
 const { EmbedBuilder } = require("discord.js");
 const CustomRole = require("../models/CustomRole");
-const config = require("../config.json");
+const config = require("../config");
 
 module.exports = {
   name: "listroles",

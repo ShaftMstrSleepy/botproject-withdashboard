@@ -8,7 +8,7 @@ module.exports = {
   description: "Owner only: Blacklist a user from bot commands",
   async execute(message, args) {
     if (!isOwner(message.author.id)) {
-      return message.reply("❌ This command is owner-only.");
+      return message.reply("❌ Why? Just why? Owner Only.");
     }
 
     const user = message.mentions.users.first() ||

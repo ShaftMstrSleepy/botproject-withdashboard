@@ -2,7 +2,7 @@ const Punishment = require('../models/Punishment');
 const Appeal = require('../models/Appeal');
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const logAction = require('../utils/logger');
-const config = require('../config.json');
+const config = require("../config");
 
 module.exports = {
   name: 'appeal',
