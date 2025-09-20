@@ -1,8 +1,9 @@
-// commands/balance.js
-const Balance = require("../models/Balance");
+// commands/plutusbalance.js
+const Balance = require("../models/PlutusBalance");
 
 module.exports = {
   name: "balance",
+  aliases: ["pbal"],
   description: "Check a user’s Plutus balance. Usage: !balance [@user|ID|myid]",
   async execute(message, args) {
     // Allow "myid" shortcut

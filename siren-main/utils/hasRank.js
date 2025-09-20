@@ -1,11 +1,13 @@
-// utils/hasRank.js
-// Checks if a member has at least a given staff rank based on env or GuildConfig
-const config = require("../config");
-
-function hasRequiredRank(member, minRankIndex) {
-  // staffRoleIds is a comma-separated list in .env or can be pulled per-guild later
-  const staffRoles = config.STAFF_ROLE_IDS || [];
-  return member.roles.cache.some(r => staffRoles.slice(minRankIndex).includes(r.id));
+// siren-main/utils/hasRank.js
+/**
+ * Check if a member has a staff role at or above a required index.
+ * `guildCfg.staffRoles` must be ordered LOWEST -> HIGHEST.
+ */
+function hasRequiredRank(member, minRankIndex, guildCfg) {
+  const ladder = Array.isArray(guildCfg?.staffRoles) ? guildCfg.staffRoles : [];
+  if (!ladder.length) return false;
+  const required = new Set(ladder.slice(minRankIndex));
+  return member.roles.cache.some(r => required.has(r.id));
 }
 
 module.exports = { hasRequiredRank };

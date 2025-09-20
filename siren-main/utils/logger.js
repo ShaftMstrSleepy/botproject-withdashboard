@@ -1,31 +1,47 @@
-// utils/logger.js
+// siren-main/utils/logger.js
 const { EmbedBuilder } = require("discord.js");
-const config = require("../config"); // now reads from .env
+const GuildConfig = require("../models/GuildConfig");
 
-module.exports = async function logAction(client, key, text) {
+/**
+ * logAction(client, key, text, ctx?)
+ * - key: "promotions" | "punishments" | "appeals" | "ownership" | "general" | "blacklist" | ...
+ * - text: string OR null (if you plan to send your own embed via ctx.embed)
+ * - ctx (optional): one of
+ *    { guildId?: string, embed?: EmbedBuilder }
+ *    OR a Discord.js Message/Interaction with .guild?.id
+ */
+module.exports = async function logAction(client, key, text, ctx) {
   try {
-    // look up channel ID from env-driven config (GuildConfig can override per guild)
-    const channelId = config.LOG_CHANNELS?.[key] || process.env[`LOG_${key.toUpperCase()}_ID`];
-    if (!channelId) return;
+    // Resolve guildId from ctx
+    let guildId = null;
+    if (ctx?.guildId) guildId = ctx.guildId;
+    else if (ctx?.guild?.id) guildId = ctx.guild.id;
 
-    const channel = await client.channels.fetch(channelId).catch(() => null);
+    if (!guildId) {
+      // No guild context — nothing to do safely
+      return;
+    }
+
+    const gcfg = await GuildConfig.findOne({ guildId }).lean().catch(() => null);
+    const chanId = gcfg?.logChannels?.[key];
+    if (!chanId) return;
+
+    const channel = await client.channels.fetch(chanId).catch(() => null);
     if (!channel) return;
 
-    const title =
-      key === "ownership"
-        ? "Role Ownership Log"
-        : `${key.charAt(0).toUpperCase() + key.slice(1)} Log`;
-
-    const embed = new EmbedBuilder()
-      .setTitle(`🔔 ${title}`)
-      .setDescription(text)
-      .setColor("Blue")
-      .setTimestamp();
+    let embed;
+    if (ctx?.embed) {
+      embed = ctx.embed;
+    } else {
+      embed = new EmbedBuilder()
+        .setTitle(`🔔 ${key.charAt(0).toUpperCase() + key.slice(1)} Log`)
+        .setDescription(text || "")
+        .setColor("Blue")
+        .setTimestamp();
+    }
 
     await channel.send({ embeds: [embed] });
   } catch (err) {
     console.error("Logger error:", err);
-    const errorLogger = require("./errorLogger");
-    await errorLogger(client, `logger-${key}`, err);
   }
 };

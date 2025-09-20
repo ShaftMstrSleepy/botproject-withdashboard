@@ -10,7 +10,8 @@ const {
 const mongoose = require("mongoose");
 require("dotenv").config();
 
-const config = require("./config.json");
+// ⬇️ remove config.json reliance
+// const config = require("./config.json");
 const GuildConfig = require("./models/GuildConfig");
 const Appeal = require("./models/Appeal");
 const Punishment = require("./models/Punishment");
@@ -18,9 +19,7 @@ const Balance = require("./models/Balance");
 const Blacklist = require("./models/Blacklist");
 const logAction = require("./utils/logger");
 const errorLogger = require("./utils/errorLogger");
-
-// ➕ owner guard
-const isOwner = require("./utils/ownerGuard");
+const isOwner = require("./utils/ownerGuard"); // ✅ already present
 
 const client = new Client({
   intents: [
@@ -81,18 +80,15 @@ client.on("guildMemberAdd", async member => {
     });
 
     if (activeMute) {
-      // ⬇️ Per-guild mutedRoleId via GuildConfig; fallback to config.json if needed
+      // Per-guild mutedRoleId from DB
       const gcfg = await GuildConfig.findOne({ guildId: member.guild.id }).lean().catch(() => null);
-      const mutedRoleId = gcfg?.mutedRoleId || config.mutedRoleId;
+      const mutedRoleId = gcfg?.mutedRoleId;
 
       const muteRole = mutedRoleId ? member.guild.roles.cache.get(mutedRoleId) : null;
       if (muteRole) await member.roles.add(muteRole).catch(() => {});
 
-      // ⬇️ Per-guild general log channel
-      const generalId =
-        (gcfg?.logChannels?.general && gcfg.logChannels.general[0]) ||
-        (config.logChannels && config.logChannels.general);
-
+      // Per-guild general log channel
+      const generalId = gcfg?.logChannels?.general?.[0];
       const general = generalId ? member.guild.channels.cache.get(generalId) : null;
       if (general) {
         general.send(`🔇 Welcome back <@${member.id}> — your muted role has been restored.`);
@@ -108,9 +104,9 @@ client.on("guildMemberAdd", async member => {
 client.on("messageCreate", async message => {
   if (message.author.bot || !message.guild) return;
 
-  // 🔑 Per-guild prefix (fallback to default)
-  let guildCfg = await GuildConfig.findOne({ guildId: message.guild.id }).catch(() => null);
-  const prefix = guildCfg?.prefix || config.prefix;
+  // 🔑 Per-guild prefix (fallback to "!")
+  const guildCfg = await GuildConfig.findOne({ guildId: message.guild.id }).catch(() => null);
+  const prefix = guildCfg?.prefix || "!";
 
   if (!message.content.startsWith(prefix)) return;
   const args = message.content.slice(prefix.length).trim().split(/ +/);
@@ -128,7 +124,7 @@ client.on("messageCreate", async message => {
   // 🔒 ---- GLOBAL BLACKLIST CHECK ----
   try {
     const black = await Blacklist.findOne({ userId: message.author.id });
-    if (black && !isOwner(message.author.id)) { // owner bypasses blacklist
+    if (black && !isOwner(message.author.id)) {
       if (!["help", "appeal"].includes(name)) {
         return message.reply({
           embeds: [{
@@ -164,8 +160,8 @@ client.on("messageCreate", async message => {
     const exists = await Balance.findOne({ userId: message.author.id });
     if (!exists) await new Balance({ userId: message.author.id, balance: 0 }).save();
 
-    // Pass both static config + guildCfg so commands can read per-guild ids
-    await command.execute(message, args, { ...config, guildCfg }, client);
+    // Pass guildCfg only (no static config.json)
+    await command.execute(message, args, guildCfg || {}, client);
   } catch (err) {
     console.error("Command error:", err);
     await errorLogger(client, command?.name || "unknown", err);
@@ -188,12 +184,12 @@ client.on("interactionCreate", async interaction => {
       const exists = await Balance.findOne({ userId: interaction.user.id });
       if (!exists) await new Balance({ userId: interaction.user.id, balance: 0 }).save();
 
-      // Load per-guild config if available
+      // Load per-guild config
       const guildCfg = interaction.guild
         ? await GuildConfig.findOne({ guildId: interaction.guild.id }).lean().catch(() => null)
         : null;
 
-      await command.execute(interaction, { ...config, guildCfg }, client);
+      await command.execute(interaction, guildCfg || {}, client);
     } catch (error) {
       console.error("Slash command error:", error);
       await errorLogger(client, interaction.commandName, error);
@@ -233,11 +229,9 @@ client.on("interactionCreate", async interaction => {
       try {
         const member = await interaction.guild.members.fetch(appeal.userId).catch(() => null);
         if (member) {
-          // Per-guild mutedRoleId
           const gcfg = await GuildConfig.findOne({ guildId: interaction.guild.id }).lean().catch(() => null);
-          const mutedRoleId = gcfg?.mutedRoleId || config.mutedRoleId;
+          const mutedRoleId = gcfg?.mutedRoleId;
           const muteRole = mutedRoleId ? interaction.guild.roles.cache.get(mutedRoleId) : null;
-
           if (muteRole && member.roles.cache.has(muteRole.id)) {
             await member.roles.remove(muteRole).catch(console.error);
           }

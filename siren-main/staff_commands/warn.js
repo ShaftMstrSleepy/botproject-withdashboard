@@ -1,5 +1,7 @@
+// warn.js
 const { v4: uuidv4 } = require("uuid");
 const Punishment = require("../models/Punishment");
+const GuildConfig = require("../models/GuildConfig");
 const logAction = require("../utils/logger");
 const errorLogger = require("../utils/errorLogger");
 const { hasRequiredRank } = require("../utils/hasRank");
@@ -7,9 +9,10 @@ const { hasRequiredRank } = require("../utils/hasRank");
 module.exports = {
   name: "warn",
   description: "Warn a user (Trial Mod or higher).",
-  async execute(message, args) {
+  async execute(message, args, cfg) {
     try {
-      if (!hasRequiredRank(message.member, 0)) { // Trial Mod+
+      const gcfg = cfg?.guildCfg || await GuildConfig.findOne({ guildId: message.guild.id }).lean();
+      if (!hasRequiredRank(message.member, 0, gcfg)) {
         return message.reply("❌ You must be **Trial Mod or higher** to warn users.");
       }
 
@@ -34,13 +37,14 @@ module.exports = {
       await logAction(
         message.client,
         "punishments",
-        `⚠️ **User Warned**\n**User:** ${user.tag} (<@${user.id}>)\n**Moderator:** ${message.author.tag}\n**Reason:** ${reason}\n**Case ID:** ${caseId}`
+        `⚠️ **User Warned**\n**User:** ${user.tag} (<@${user.id}>)\n**Moderator:** ${message.author.tag}\n**Reason:** ${reason}\n**Case ID:** ${caseId}`,
+        message
       );
 
       return message.reply(`✅ Warned ${user.tag}. Case ID: \`${caseId}\``);
     } catch (err) {
       console.error(err);
-      await errorLogger(message.client, "warn", err);
+      await errorLogger(message.client, "warn", err, message);
       return message.reply("❌ Failed to warn the user.");
     }
   }

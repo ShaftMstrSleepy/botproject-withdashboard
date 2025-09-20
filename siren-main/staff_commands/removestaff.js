@@ -1,12 +1,12 @@
 const Staff = require("../models/Staff");
-const config = require("../config");
+const GuildConfig = require("../models/GuildConfig");
 const logAction = require("../utils/logger");
 const errorLogger = require("../utils/errorLogger");
 
 module.exports = {
   name: "removestaff",
   description: "Completely remove a staff member from the staff database and roles",
-  async execute(message, args, _cfg, client) {
+  async execute(message, args, cfg, client) {
     try {
       if (!message.member.permissions.has("ManageRoles")) {
         return message.reply("❌ You don’t have permission to remove staff.");
@@ -23,37 +23,31 @@ module.exports = {
       const member = await message.guild.members.fetch(user.id).catch(() => null);
       if (!member) return message.reply("⚠️ Could not find that member in this server.");
 
-      // Remove all configured staff roles
-      for (const roleId of config.staffRoles) {
-        const role = message.guild.roles.cache.get(roleId);
-        if (role && member.roles.cache.has(role.id)) {
-          await member.roles.remove(role.id).catch(() => {});
+      const gcfg = cfg?.guildCfg || await GuildConfig.findOne({ guildId: message.guild.id }).lean();
+      const ranks = gcfg?.staffRoles || [];
+
+      for (const roleId of ranks) {
+        if (member.roles.cache.has(roleId)) {
+          await member.roles.remove(roleId).catch(() => {});
         }
       }
 
-      // Remove base staff role if present
-      if (config.baseStaffRole) {
-        const baseStaffRole = message.guild.roles.cache.get(config.baseStaffRole);
-        if (baseStaffRole && member.roles.cache.has(baseStaffRole.id)) {
-          await member.roles.remove(baseStaffRole).catch(() => {});
-        }
+      if (gcfg?.baseStaffRole && member.roles.cache.has(gcfg.baseStaffRole)) {
+        await member.roles.remove(gcfg.baseStaffRole).catch(() => {});
       }
 
-      // Delete their staff record from DB
       await Staff.deleteOne({ userId: user.id });
 
-      // ✅ Detailed Removal Log
-      const removalDetails =
+      const details =
         `**User Removed:** ${user.tag} (<@${user.id}>)\n` +
         `**Removed By:** ${message.author.tag} (<@${message.author.id}>)\n` +
         `**Date & Time:** <t:${Math.floor(Date.now() / 1000)}:F>`;
 
-      await logAction(client, "promotions", `🗑️ **Staff Removed**\n${removalDetails}`);
-
+      await logAction(client, "promotions", `🗑️ **Staff Removed**\n${details}`, message);
       return message.reply(`✅ ${user.tag} has been removed from the staff team.`);
     } catch (err) {
       console.error("RemoveStaff command error:", err);
-      await errorLogger(client, "removestaff", err);
+      await errorLogger(client, "removestaff", err, message);
       throw err;
     }
   }

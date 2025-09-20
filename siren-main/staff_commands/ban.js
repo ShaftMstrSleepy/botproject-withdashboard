@@ -1,5 +1,7 @@
+// ban.js
 const { v4: uuidv4 } = require("uuid");
 const Punishment = require("../models/Punishment");
+const GuildConfig = require("../models/GuildConfig");
 const logAction = require("../utils/logger");
 const errorLogger = require("../utils/errorLogger");
 const { hasRequiredRank } = require("../utils/hasRank");
@@ -7,9 +9,10 @@ const { hasRequiredRank } = require("../utils/hasRank");
 module.exports = {
   name: "ban",
   description: "Ban a user (Mod or higher).",
-  async execute(message, args) {
+  async execute(message, args, cfg) {
     try {
-      if (!hasRequiredRank(message.member, 1)) { // Mod+
+      const gcfg = cfg?.guildCfg || await GuildConfig.findOne({ guildId: message.guild.id }).lean();
+      if (!hasRequiredRank(message.member, 1, gcfg)) {
         return message.reply("❌ You must be **Mod or higher** to ban users.");
       }
 
@@ -38,13 +41,14 @@ module.exports = {
       await logAction(
         message.client,
         "punishments",
-        `⛔ **User Banned**\n**User:** ${user.tag} (<@${user.id}>)\n**Moderator:** ${message.author.tag}\n**Reason:** ${reason}\n**Case ID:** ${caseId}`
+        `⛔ **User Banned**\n**User:** ${user.tag} (<@${user.id}>)\n**Moderator:** ${message.author.tag}\n**Reason:** ${reason}\n**Case ID:** ${caseId}`,
+        message
       );
 
       return message.reply(`✅ Banned ${user.tag}. Case ID: \`${caseId}\``);
     } catch (err) {
       console.error(err);
-      await errorLogger(message.client, "ban", err);
+      await errorLogger(message.client, "ban", err, message);
       return message.reply("❌ Failed to ban the user.");
     }
   }
