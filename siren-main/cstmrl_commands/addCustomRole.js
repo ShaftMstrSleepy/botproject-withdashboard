@@ -1,6 +1,6 @@
 // commands/purgerole.js
 const RoleOwnership = require('../models/RoleOwnership');
-const Balance = require('../models/Balance');
+const Balance = require('../models/PlutusBalance');
 const logAction = require('../utils/logger');
 
 module.exports = {

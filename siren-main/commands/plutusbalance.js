@@ -2,7 +2,7 @@
 const Balance = require("../models/PlutusBalance");
 
 module.exports = {
-  name: "balance",
+  name: "plutusbalance",
   aliases: ["pbal"],
   description: "Check a user’s Plutus balance. Usage: !balance [@user|ID|myid]",
   async execute(message, args) {
