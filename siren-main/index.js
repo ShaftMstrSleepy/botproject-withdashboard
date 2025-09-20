@@ -33,8 +33,8 @@ const client = new Client({
 
 // ─── Load Prefix + Slash Commands ────────────────────────────────
 client.commands = new Collection();
-for (const file of fs.readdirSync("./commands").filter(f => f.endsWith(".js"))) {
-  const cmd = require(`./commands/${file}`);
+for (const file of fs.readdirSync(__dirname + "./commands").filter(f => f.endsWith(".js"))) {
+  const cmd = require(__dirname + `./commands/${file}`);
   if (!cmd.name && !cmd.data) continue;
   client.commands.set(cmd.name || cmd.data?.name, cmd);
 }
@@ -42,7 +42,7 @@ for (const file of fs.readdirSync("./commands").filter(f => f.endsWith(".js"))) 
 // Load subfolders (e.g., owner_commands, cstmrl_commands, staff_commands)
 for (const dir of ["owner_commands", "cstmrl_commands", "staff_commands"]) {
   if (!fs.existsSync(`./${dir}`)) continue;
-  for (const file of fs.readdirSync(`./${dir}`).filter(f => f.endsWith(".js"))) {
+  for (const file of fs.readdirSync(__dirname + `./${dir}`).filter(f => f.endsWith(".js"))) {
     const cmd = require(`./${dir}/${file}`);
     if (!cmd.name && !cmd.data) continue;
     client.commands.set(cmd.name || cmd.data?.name, cmd);
