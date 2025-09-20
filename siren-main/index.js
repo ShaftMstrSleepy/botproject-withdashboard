@@ -33,8 +33,8 @@ const client = new Client({
 
 // ─── Load Prefix + Slash Commands ────────────────────────────────
 client.commands = new Collection();
-for (const file of fs.readdirSync(__dirname + "./commands").filter(f => f.endsWith(".js"))) {
-  const cmd = require(__dirname + `./commands/${file}`);
+for (const file of fs.readdirSync(__dirname + "/commands").filter(f => f.endsWith(".js"))) {
+  const cmd = require(__dirname + `/commands/${file}`);
   if (!cmd.name && !cmd.data) continue;
   client.commands.set(cmd.name || cmd.data?.name, cmd);
 }
