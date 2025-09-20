@@ -15,7 +15,7 @@ require("dotenv").config();
 const GuildConfig = require("./models/GuildConfig");
 const Appeal = require("./models/Appeal");
 const Punishment = require("./models/Punishment");
-const Balance = require("./models/Balance");
+const Balance = require("./models/PlutusBalance");
 const Blacklist = require("./models/Blacklist");
 const logAction = require("./utils/logger");
 const errorLogger = require("./utils/errorLogger");
