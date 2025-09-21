@@ -41,9 +41,10 @@ for (const file of fs.readdirSync(__dirname + "/commands").filter(f => f.endsWit
 
 // Load subfolders (e.g., owner_commands, cstmrl_commands, staff_commands)
 for (const dir of ["owner_commands", "cstmrl_commands", "staff_commands"]) {
-  if (!fs.existsSync(`./${dir}`)) continue;
-  for (const file of fs.readdirSync(__dirname + `./${dir}`).filter(f => f.endsWith(".js"))) {
-    const cmd = require(`./${dir}/${file}`);
+  const folder = __dirname + `/${dir}`;
+  if (!fs.existsSync(folder)) continue;
+  for (const file of fs.readdirSync(folder).filter(f => f.endsWith(".js"))) {
+    const cmd = require(folder + `/${file}`);
     if (!cmd.name && !cmd.data) continue;
     client.commands.set(cmd.name || cmd.data?.name, cmd);
   }
