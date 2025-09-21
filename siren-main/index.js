@@ -139,7 +139,7 @@ client.on("messageCreate", async message => {
   if (!name) return;
 
     let command = client.commands.get(name);
-  if (!command) return; {
+  if (!command) {
     command = client.commands.find(cmd => cmd.aliases && cmd.aliases.includes(name));
   }
   if (!command) return;
