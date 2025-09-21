@@ -4,21 +4,11 @@
   <title>Siren Dashboard</title>
   <link rel="stylesheet" href="/css/dashboard.css">
 </head>
-  <!-- Main Content -->
-  <div class="main-content">
-    <%- body %>
-  </div>
-
-  <!-- Multi-select enhancer -->
-  <script src="/js/multi.js"></script>
-</body>
-</html>
-
 <body>
   <!-- Top Nav (sticky) -->
   <div class="navbar">
     <h1>Siren Dashboard</h1>
-    <% if (user) { %>
+    <% if (typeof user !== 'undefined' && user) { %>
       <div class="user-menu">
         <img src="<%= user.avatarURL %>" alt="Avatar" class="user-avatar">
         <span class="username"><%= user.global_name || user.username %></span>
@@ -35,7 +25,7 @@
   </div>
 
   <!-- Left Sidebar (only after login) -->
-  <% if (user) { %>
+  <% if (typeof user !== 'undefined' && user) { %>
     <div class="sidebar">
       <a href="/general-settings">General Settings</a>
       <a href="/commands">Commands</a>
@@ -43,4 +33,12 @@
     </div>
   <% } %>
 
-  
+  <!-- Main Content -->
+  <div class="main-content">
+    <%- body %>
+  </div>
+
+  <!-- Multi-select enhancer -->
+  <script src="/js/multi.js"></script>
+</body>
+</html>

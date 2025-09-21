@@ -73,24 +73,37 @@ client.on("guildMemberAdd", async member => {
       console.log(`💾 Created balance record for ${member.user.tag}`);
     }
 
-    // ─── Ensure Guild + Member docs on join ──────────────────────────
+// ─── Ensure Guild + Member docs on join ──────────────────────────
 client.on("guildCreate", async guild => {
   try {
-    // create GuildConfig if missing
-    const gcfg = await GuildConfig.findOne({ guildId: guild.id });
-    if (!gcfg) {
-      await GuildConfig.create({ guildId: guild.id, guildName: guild.name });
-      console.log(`💾 Added guild record for ${guild.name}`);
-    }
-    // create balance docs for every current member
+    // 1. Upsert guild record
+    await GuildConfig.findOneAndUpdate(
+      { guildId: guild.id },
+      { guildName: guild.name },
+      { upsert: true, new: true }
+    );
+    console.log(`💾 Guild record saved for ${guild.name}`);
+
+    // 2. Backfill members into PlutusBalance AND Users collection
     const PlutusBalance = require("./models/PlutusBalance");
-    guild.members.fetch().then(members => {
-      members.forEach(async m => {
-        if (m.user.bot) return;
-        const exists = await PlutusBalance.findOne({ userId: m.id });
-        if (!exists) await PlutusBalance.create({ userId: m.id, balance: 0 });
-      });
-    });
+    const User = require("./models/User"); // <- create this model if you don’t already have it
+
+    const members = await guild.members.fetch();
+    for (const m of members.values()) {
+      if (m.user.bot) continue;
+
+      // ensure Plutus balance
+      const bal = await PlutusBalance.findOne({ userId: m.id });
+      if (!bal) await PlutusBalance.create({ userId: m.id, balance: 0 });
+
+      // ensure user record tied to this guild
+      await User.findOneAndUpdate(
+        { userId: m.id, guildId: guild.id },
+        { username: m.user.tag },
+        { upsert: true, new: true }
+      );
+    }
+    console.log(`💾 Stored ${members.size} users for guild ${guild.name}`);
   } catch (e) {
     console.error("guildCreate insert error:", e);
     await errorLogger(client, "guildCreate", e);
