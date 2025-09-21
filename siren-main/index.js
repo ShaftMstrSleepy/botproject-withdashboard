@@ -41,10 +41,10 @@ for (const file of fs.readdirSync(__dirname + "/commands").filter(f => f.endsWit
 
 // Load subfolders (e.g., owner_commands, cstmrl_commands, staff_commands)
 for (const dir of ["owner_commands", "cstmrl_commands", "staff_commands"]) {
-  const folder = __dirname + `/${dir}`;
-  if (!fs.existsSync(folder)) continue;
-  for (const file of fs.readdirSync(folder).filter(f => f.endsWith(".js"))) {
-    const cmd = require(folder + `/${file}`);
+  const dirPath = __dirname + `/${dir}`;
+  if (!fs.existsSync(dirPath)) continue;
+  for (const file of fs.readdirSync(dirPath).filter(f => f.endsWith(".js"))) {
+    const cmd = require(`${dirPath}/${file}`);
     if (!cmd.name && !cmd.data) continue;
     client.commands.set(cmd.name || cmd.data?.name, cmd);
   }
@@ -138,7 +138,10 @@ client.on("messageCreate", async message => {
   const name = args.shift()?.toLowerCase();
   if (!name) return;
 
-  const command = client.commands.get(name);
+    let command = client.commands.get(name);
+  if (!command) return; {
+    command = client.commands.find(cmd => cmd.aliases && cmd.aliases.includes(name));
+  }
   if (!command) return;
 
   // ✅ Owner-only gate (prefix)
