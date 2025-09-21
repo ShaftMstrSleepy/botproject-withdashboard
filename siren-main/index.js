@@ -76,33 +76,32 @@ client.on("guildMemberAdd", async member => {
 // ─── Ensure Guild + Member docs on join ──────────────────────────
 client.on("guildCreate", async guild => {
   try {
-    // 1. Upsert guild record
     await GuildConfig.findOneAndUpdate(
       { guildId: guild.id },
       { guildName: guild.name },
       { upsert: true, new: true }
     );
-    console.log(`💾 Guild record saved for ${guild.name}`);
 
-    // 2. Backfill members into PlutusBalance AND Users collection
     const PlutusBalance = require("./models/PlutusBalance");
-    const User = require("./models/User"); // <- create this model if you don’t already have it
+    const User = require("./models/User");
 
     const members = await guild.members.fetch();
     for (const m of members.values()) {
       if (m.user.bot) continue;
 
-      // ensure Plutus balance
-      const bal = await PlutusBalance.findOne({ userId: m.id });
-      if (!bal) await PlutusBalance.create({ userId: m.id, balance: 0 });
+      await PlutusBalance.findOneAndUpdate(
+        { userId: m.id },
+        { $setOnInsert: { balance: 0 } },
+        { upsert: true }
+      );
 
-      // ensure user record tied to this guild
       await User.findOneAndUpdate(
         { userId: m.id, guildId: guild.id },
         { username: m.user.tag },
-        { upsert: true, new: true }
+        { upsert: true }
       );
     }
+
     console.log(`💾 Stored ${members.size} users for guild ${guild.name}`);
   } catch (e) {
     console.error("guildCreate insert error:", e);
