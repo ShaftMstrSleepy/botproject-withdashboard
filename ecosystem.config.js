@@ -1,7 +1,7 @@
 module.exports = {
   apps: [{
     name: 'siren-bot',
-    script: 'index.js',      // or the main entry file for your bot
+    script: 'siren-main/index.js',      // or the main entry file for your bot
     env: {
       NODE_ENV: 'production',
       BOT_TOKEN: process.env.BOT_TOKEN,
