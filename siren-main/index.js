@@ -76,6 +76,7 @@ client.on("guildMemberAdd", async member => {
 // ─── Ensure Guild + Member docs on join ──────────────────────────
 client.on("guildCreate", async guild => {
   try {
+    // Upsert guild config
     await GuildConfig.findOneAndUpdate(
       { guildId: guild.id },
       { guildName: guild.name },
@@ -87,7 +88,6 @@ client.on("guildCreate", async guild => {
 
     const members = await guild.members.fetch();
     for (const m of members.values()) {
-      if (m.user.bot) continue;
 
       await PlutusBalance.findOneAndUpdate(
         { userId: m.id },
