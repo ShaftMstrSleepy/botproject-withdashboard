@@ -8,10 +8,14 @@ module.exports = {
     if (!message.member.permissions.has('Administrator'))
       return message.reply(':x: You do not have permission.');
 
-    // ✅ Pull base role from this guild's DB config
+    // 🔎 Debug log to confirm what cfg contains
+    console.log('AddStaff cfg:', JSON.stringify(cfg, null, 2));
+
     const baseRoleId = cfg?.staffRoles?.base;
     if (!baseRoleId) {
-      return message.reply(':warning: A base staff role has not been set in the dashboard for this server. Please configure it before using this command.');
+      return message.reply(
+        ':warning: A base staff role has not been set in the dashboard for this server. Please configure it before using this command.'
+      );
     }
 
     const arg = args[0];
@@ -25,14 +29,8 @@ module.exports = {
 
     const member = await message.guild.members.fetch(user.id).catch(() => null);
     if (member) {
-      // add base staff role from DB
       if (!member.roles.cache.has(baseRoleId)) {
         await member.roles.add(baseRoleId).catch(() => {});
-      }
-      // optional extra staff role tier list
-      const extraRoles = Object.values(cfg.staffRoles || {}).filter(r => r && r !== baseRoleId);
-      for (const r of extraRoles) {
-        if (!member.roles.cache.has(r)) await member.roles.add(r).catch(() => {});
       }
     }
 
