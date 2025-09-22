@@ -10,31 +10,31 @@ module.exports = {
   async execute(message, args, cfg, client) {
     try {
       if (!message.member.permissions.has("ManageRoles")) {
-        return message.reply("❌ You don’t have permission to remove staff.");
+        return message.reply(":x: You don’t have permission to remove staff.");
       }
 
       const user =
         message.mentions.users.first() ||
         (args[0] && await client.users.fetch(args[0]).catch(() => null));
-      if (!user) return message.reply("⚠️ Please mention a user or provide a valid user ID.");
+      if (!user) return message.reply(":warning: Please mention a user or provide a valid user ID.");
 
       const staffRecord = await Staff.findOne({ userId: user.id });
-      if (!staffRecord) return message.reply("❌ That user is not in the staff database.");
+      if (!staffRecord) return message.reply(":x: That user is not in the staff database.");
 
       const member = await message.guild.members.fetch(user.id).catch(() => null);
-      if (!member) return message.reply("⚠️ Could not find that member in this server.");
+      if (!member) return message.reply(":warning: Could not find that member in this server.");
 
       const gcfg = cfg?.guildCfg || await GuildConfig.findOne({ guildId: message.guild.id }).lean();
-      const ranks = gcfg?.staffRoles || [];
 
-      if (Array.isArray(ranks)) {
-        for (const roleId of ranks) {
-          if (member.roles.cache.has(roleId)) {
-            await member.roles.remove(roleId).catch(() => {});
-          }
+      // ✅ Updated ranks assignment to safely handle object/array
+      const ranks = Array.isArray(gcfg?.staffRoles)
+        ? gcfg.staffRoles
+        : Object.values(gcfg?.staffRoles || {}).filter(Boolean);
+
+      for (const roleId of ranks) {
+        if (member.roles.cache.has(roleId)) {
+          await member.roles.remove(roleId).catch(() => {});
         }
-      } else {
-        console.warn("⚠️ RemoveStaff: ranks is not an array or is missing");
       }
 
       if (gcfg?.baseStaffRole && member.roles.cache.has(gcfg.baseStaffRole)) {
