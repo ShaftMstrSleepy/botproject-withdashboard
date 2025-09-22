@@ -5,7 +5,7 @@ const errorLogger = require("../utils/errorLogger");
 
 module.exports = {
   name: "promote",
-  description: "Promote a staff member through the configured staff roles",
+  description: "Promote a staff member through the guild’s configured staff roles",
   async execute(message, args, cfg, client) {
     try {
       if (!message.member.permissions.has("ManageRoles")) {
@@ -24,66 +24,74 @@ module.exports = {
       if (!member) return message.reply(":warning: Could not find that member in this server.");
 
       const gcfg = cfg?.guildCfg || await GuildConfig.findOne({ guildId: message.guild.id }).lean();
-      if (!gcfg || !gcfg.staffRoles) {
-        return message.reply(":warning: This server has no staff roles configured. Please set them in the dashboard.");
+      if (!gcfg?.staffRoles) {
+        return message.reply(":warning: This server has no staffRoles configured. Please set them in the dashboard.");
       }
 
-      // Ordered ranks
-      const ranks = Array.isArray(gcfg.staffRoles)
-        ? gcfg.staffRoles
-        : [
-            gcfg.staffRoles.trialMod,
-            gcfg.staffRoles.mod,
-            gcfg.staffRoles.seniorMod,
-            gcfg.staffRoles.retired,
-            gcfg.staffRoles.management
-          ].filter(Boolean);
+      // Resolve roles from object
+      const roles = gcfg.staffRoles;
+      const baseId   = gcfg.baseStaffRole;
+      const trialId  = roles.trialMod;
+      const modId    = roles.mod;
+      const srId     = roles.seniorMod;
+      const retiredId= roles.retired;
+      const mgmtId   = roles.management;
 
-      if (ranks.length < 2) {
-        return message.reply(":warning: Not enough staff ranks are configured for promotions.");
+      const has = id => id && member.roles.cache.has(id);
+      let current;
+      if (has(trialId)) current = "trialMod";
+      else if (has(modId)) current = "mod";
+      else if (has(srId)) current = "seniorMod";
+      else if (has(retiredId)) current = "retired";
+      else if (has(mgmtId)) current = "management";
+      else return message.reply(":warning: This user does not have a recognized staff rank.");
+
+      const addRole = async id => id && await member.roles.add(id).catch(() => {});
+      const removeRole = async id => id && member.roles.cache.has(id) && await member.roles.remove(id).catch(() => {});
+
+      let newRankName = "";
+      switch (current) {
+        case "trialMod":
+          await removeRole(trialId);
+          await addRole(modId);
+          newRankName = "Mod";
+          break;
+        case "mod":
+          await removeRole(modId);
+          await addRole(srId);
+          newRankName = "Senior Mod";
+          break;
+        case "seniorMod":
+          // Promote to Retired: remove Base Staff and Senior Mod
+          await removeRole(srId);
+          await addRole(retiredId);
+          if (baseId) await removeRole(baseId);   // ✅ remove base staff here
+          newRankName = "Retired";
+          break;
+        case "retired":
+          // Promote to Management: ensure Base Staff remains OFF
+          await removeRole(retiredId);
+          await addRole(mgmtId);
+          if (baseId) await removeRole(baseId);   // ✅ keep base staff off
+          newRankName = "Management";
+          break;
+        default:
+          return message.reply(":warning: This user is already at the highest rank.");
       }
 
-      // Remove current rank role if present
-      const currentRoleId = ranks[staffRecord.currentRank];
-      if (currentRoleId && member.roles.cache.has(currentRoleId)) {
-        await member.roles.remove(currentRoleId).catch(() => {});
-      }
-
-      if (staffRecord.currentRank >= ranks.length - 1) {
-        return message.reply(":warning: This user is already at the highest rank.");
-      }
-
-      // Promote to next rank
-      staffRecord.currentRank++;
+      // update DB rank index
+      const rankMap = ["trialMod", "mod", "seniorMod", "retired", "management"];
+      staffRecord.currentRank = rankMap.indexOf(newRankName.toLowerCase());
       await staffRecord.save();
-
-      const newRoleId = ranks[staffRecord.currentRank];
-      if (newRoleId) {
-        await member.roles.add(newRoleId).catch(() =>
-          message.reply(":warning: Could not add the next rank role. Check my role hierarchy/permissions.")
-        );
-      }
-
-      // ✅ Remove base staff role once promoted to Retired or above
-      const isRetiredOrAbove = staffRecord.currentRank >= ranks.indexOf(gcfg.staffRoles.retired);
-      if (isRetiredOrAbove && gcfg.baseStaffRole) {
-        const baseStaffRole = message.guild.roles.cache.get(gcfg.baseStaffRole);
-        if (baseStaffRole && member.roles.cache.has(baseStaffRole.id)) {
-          await member.roles.remove(baseStaffRole).catch(() => {});
-        }
-      }
-
-      const newRole = message.guild.roles.cache.get(newRoleId);
-      const rankName = newRole ? newRole.name : "Unknown Rank";
 
       const details =
         `**User Promoted:** ${user.tag} (<@${user.id}>)\n` +
         `**Promoted By:** ${message.author.tag} (<@${message.author.id}>)\n` +
-        `**New Rank:** ${rankName}\n` +
+        `**New Rank:** ${newRankName}\n` +
         `**Date & Time:** <t:${Math.floor(Date.now() / 1000)}:F>`;
 
       await logAction(client, "promotions", `⬆️ **Staff Promoted**\n${details}`, message);
-      return message.reply(`✅ ${user.tag} has been promoted to ${rankName}.`);
+      return message.reply(`✅ ${user.tag} has been promoted to ${newRankName}.`);
     } catch (err) {
       console.error("Promote command error:", err);
       await errorLogger(client, "promote", err, message);
