@@ -5,7 +5,7 @@ const errorLogger = require("../utils/errorLogger");
 
 module.exports = {
   name: "demote",
-  description: "Demote a staff member down one rank",
+  description: "Demote a staff member following the rank hierarchy",
   async execute(message, args, cfg, client) {
     try {
       if (!message.member.permissions.has("ManageRoles")) {
@@ -24,46 +24,81 @@ module.exports = {
       if (!member) return message.reply(":warning: Could not find that member in this server.");
 
       const gcfg = cfg?.guildCfg || await GuildConfig.findOne({ guildId: message.guild.id }).lean();
-      const ranks = Array.isArray(gcfg?.staffRoles)
-        ? gcfg.staffRoles
-        : Object.values(gcfg?.staffRoles || {}).filter(Boolean);
-
-      if (ranks.length < 2) {
-        return message.reply(":warning: Please set staff roles in the dashboard first.");
+      if (!gcfg?.staffRoles) {
+        return message.reply(":warning: Please configure staff roles in the dashboard first.");
       }
 
-      if (staffRecord.currentRank <= 0) {
-        return message.reply(":warning: This user is already at the lowest rank.");
+      const roles = gcfg.staffRoles; // object with keys
+      const baseId   = gcfg.baseStaffRole;
+      const trialId  = roles.trialMod;
+      const modId    = roles.mod;
+      const srId     = roles.seniorMod;
+      const retiredId= roles.retired;
+      const mgmtId   = roles.management;
+
+      // Determine current rank from member’s roles
+      const has = id => id && member.roles.cache.has(id);
+      let current;
+      if (has(mgmtId)) current = "management";
+      else if (has(retiredId)) current = "retired";
+      else if (has(srId)) current = "seniorMod";
+      else if (has(modId)) current = "mod";
+      else if (has(trialId)) current = "trialMod";
+      else return message.reply(":warning: This user does not have a recognized staff rank.");
+
+      // Trial Mod cannot be demoted further
+      if (current === "trialMod") {
+        return message.reply(":warning: A user cannot be demoted below Trial Mod. Remove them from staff instead.");
       }
 
-      const currentRoleId = ranks[staffRecord.currentRank];
-      if (currentRoleId) await member.roles.remove(currentRoleId).catch(() => {});
+      // Utility to safely add/remove a role
+      const addRole = async id => id && await member.roles.add(id).catch(() => {});
+      const removeRole = async id => id && member.roles.cache.has(id) && await member.roles.remove(id).catch(() => {});
 
-      staffRecord.currentRank--;
+      // Perform the correct demotion
+      switch (current) {
+        case "management":
+          await removeRole(mgmtId);
+          await addRole(retiredId);
+          // base staff stays removed
+          break;
+        case "retired":
+          await removeRole(retiredId);
+          await addRole(srId);
+          await addRole(baseId);
+          break;
+        case "seniorMod":
+          await removeRole(srId);
+          await addRole(modId);
+          // base staff remains
+          break;
+        case "mod":
+          await removeRole(modId);
+          await addRole(trialId);
+          // base staff remains
+          break;
+      }
+
+      // Update staff record rank index to match new role
+      const rankMap = ["trialMod","mod","seniorMod","retired","management"];
+      const newRank = current === "management"
+        ? rankMap.indexOf("retired")
+        : current === "retired"
+          ? rankMap.indexOf("seniorMod")
+          : current === "seniorMod"
+            ? rankMap.indexOf("mod")
+            : rankMap.indexOf("trialMod");
+      staffRecord.currentRank = newRank;
       await staffRecord.save();
 
-      const newRoleId = ranks[staffRecord.currentRank];
-      await member.roles.add(newRoleId).catch(() => {});
-
-      if (gcfg.baseStaffRole) {
-        const baseStaffRole = message.guild.roles.cache.get(gcfg.baseStaffRole);
-        if (baseStaffRole && !member.roles.cache.has(baseStaffRole.id)) {
-          await member.roles.add(baseStaffRole).catch(() => {});
-        }
-      }
-
-      const newRankRole = message.guild.roles.cache.get(newRoleId);
-      const rankName = newRankRole ? newRankRole.name : "Unknown Rank";
-
-      // ✅ Unified log format
       const details =
         `**User Demoted:** ${user.tag} (<@${user.id}>)\n` +
         `**Demoted By:** ${message.author.tag} (<@${message.author.id}>)\n` +
-        `**New Rank:** ${rankName}\n` +
+        `**New Rank:** ${rankMap[newRank]}\n` +
         `**Date & Time:** <t:${Math.floor(Date.now() / 1000)}:F>`;
 
       await logAction(client, "promotions", `⬇️ **Staff Demoted**\n${details}`, message);
-      return message.reply(`✅ ${user.tag} has been demoted to ${rankName}.`);
+      return message.reply(`✅ ${user.tag} has been demoted to ${rankMap[newRank]}.`);
     } catch (err) {
       console.error("Demote command error:", err);
       await errorLogger(client, "demote", err, message);
