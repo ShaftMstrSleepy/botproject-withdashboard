@@ -28,7 +28,6 @@ module.exports = {
         return message.reply(":warning: This server has no staffRoles configured. Please set them in the dashboard.");
       }
 
-      // Resolve roles from object
       const roles = gcfg.staffRoles;
       const baseId   = gcfg.baseStaffRole;
       const trialId  = roles.trialMod;
@@ -62,24 +61,21 @@ module.exports = {
           newRankName = "Senior Mod";
           break;
         case "seniorMod":
-          // Promote to Retired: remove Base Staff and Senior Mod
           await removeRole(srId);
           await addRole(retiredId);
-          if (baseId) await removeRole(baseId);   // ✅ remove base staff here
+          if (baseId) await removeRole(baseId); // ✅ remove base staff
           newRankName = "Retired";
           break;
         case "retired":
-          // Promote to Management: ensure Base Staff remains OFF
           await removeRole(retiredId);
           await addRole(mgmtId);
-          if (baseId) await removeRole(baseId);   // ✅ keep base staff off
+          if (baseId) await removeRole(baseId); // ✅ keep base staff off
           newRankName = "Management";
           break;
         default:
           return message.reply(":warning: This user is already at the highest rank.");
       }
 
-      // update DB rank index
       const rankMap = ["trialMod", "mod", "seniorMod", "retired", "management"];
       staffRecord.currentRank = rankMap.indexOf(newRankName.toLowerCase());
       await staffRecord.save();
