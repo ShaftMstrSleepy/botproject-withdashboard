@@ -63,6 +63,29 @@ client.once("ready", async () => {
   }
 });
 
+// ─── Sync all guild members & balances on startup ────────────────
+client.once("ready", async () => {
+  const PlutusBalance = require("./models/PlutusBalance");
+  const User = require("./models/User");
+  console.log(`🔄 Initial member sync for ${client.guilds.cache.size} guild(s)`);
+  for (const guild of client.guilds.cache.values()) {
+    await guild.members.fetch();
+    for (const m of guild.members.cache.values()) {
+      if (m.user.bot) continue;
+      await PlutusBalance.updateOne(
+        { userId: m.id },
+        { $setOnInsert: { balance: 0 } },
+        { upsert: true }
+      );
+      await User.updateOne(
+        { userId: m.id, guildId: guild.id },
+        { username: m.user.tag },
+        { upsert: true }
+      );
+    }
+  }
+});
+
 // ─── Ensure Balance Record Exists on Join ─────────────────────────
 client.on("guildMemberAdd", async member => {
   try {

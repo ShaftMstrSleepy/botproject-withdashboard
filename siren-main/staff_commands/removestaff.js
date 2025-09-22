@@ -27,10 +27,14 @@ module.exports = {
       const gcfg = cfg?.guildCfg || await GuildConfig.findOne({ guildId: message.guild.id }).lean();
       const ranks = gcfg?.staffRoles || [];
 
-      for (const roleId of ranks) {
-        if (member.roles.cache.has(roleId)) {
-          await member.roles.remove(roleId).catch(() => {});
+      if (Array.isArray(ranks)) {
+        for (const roleId of ranks) {
+          if (member.roles.cache.has(roleId)) {
+            await member.roles.remove(roleId).catch(() => {});
+          }
         }
+      } else {
+        console.warn("⚠️ RemoveStaff: ranks is not an array or is missing");
       }
 
       if (gcfg?.baseStaffRole && member.roles.cache.has(gcfg.baseStaffRole)) {
