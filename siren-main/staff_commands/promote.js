@@ -5,7 +5,7 @@ const errorLogger = require("../utils/errorLogger");
 
 module.exports = {
   name: "promote",
-  description: "Promote a staff member through the guild’s configured staff roles",
+  description: "Promote a staff member through the configured staff roles",
   async execute(message, args, cfg, client) {
     try {
       if (!message.member.permissions.has("ManageRoles")) {
@@ -23,15 +23,28 @@ module.exports = {
       const member = await message.guild.members.fetch(user.id).catch(() => null);
       if (!member) return message.reply(":warning: Could not find that member in this server.");
 
+      // ----- Load guild configuration -----
       const gcfg = cfg?.guildCfg || await GuildConfig.findOne({ guildId: message.guild.id }).lean();
-      const ranks = Array.isArray(gcfg?.staffRoles)
-        ? gcfg.staffRoles
-        : Object.values(gcfg?.staffRoles || {}).filter(Boolean);
-
-      if (!ranks.length) {
+      if (!gcfg || !gcfg.staffRoles) {
         return message.reply(":warning: This server has no staff roles configured. Please set them in the dashboard.");
       }
 
+      // Support object or array for staffRoles
+      const ranks = Array.isArray(gcfg.staffRoles)
+        ? gcfg.staffRoles
+        : [
+            gcfg.staffRoles.trialMod,
+            gcfg.staffRoles.mod,
+            gcfg.staffRoles.seniorMod,
+            gcfg.staffRoles.retired,
+            gcfg.staffRoles.management
+          ].filter(Boolean);
+
+      if (ranks.length < 2) {
+        return message.reply(":warning: Not enough staff ranks are configured for promotions.");
+      }
+
+      // Remove current rank role if present
       const currentRoleId = ranks[staffRecord.currentRank];
       if (currentRoleId && member.roles.cache.has(currentRoleId)) {
         await member.roles.remove(currentRoleId).catch(() => {});
@@ -41,23 +54,21 @@ module.exports = {
         return message.reply(":warning: This user is already at the highest rank.");
       }
 
+      // Promote to next rank
       staffRecord.currentRank++;
       await staffRecord.save();
 
       const newRoleId = ranks[staffRecord.currentRank];
-      await member.roles.add(newRoleId).catch(() => {});
-
-      if (gcfg.baseStaffRole && staffRecord.currentRank === ranks.length - 1) {
-        const baseStaffRole = message.guild.roles.cache.get(gcfg.baseStaffRole);
-        if (baseStaffRole && member.roles.cache.has(baseStaffRole.id)) {
-          await member.roles.remove(baseStaffRole).catch(() => {});
-        }
+      if (newRoleId) {
+        await member.roles.add(newRoleId).catch(() =>
+          message.reply(":warning: Could not add the next rank role. Check my role hierarchy/permissions.")
+        );
       }
 
       const newRole = message.guild.roles.cache.get(newRoleId);
       const rankName = newRole ? newRole.name : "Unknown Rank";
 
-      // ✅ Unified log format
+      // ✅ Unified logging
       const details =
         `**User Promoted:** ${user.tag} (<@${user.id}>)\n` +
         `**Promoted By:** ${message.author.tag} (<@${message.author.id}>)\n` +
