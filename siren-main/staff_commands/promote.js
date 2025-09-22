@@ -23,13 +23,12 @@ module.exports = {
       const member = await message.guild.members.fetch(user.id).catch(() => null);
       if (!member) return message.reply(":warning: Could not find that member in this server.");
 
-      // ----- Load guild configuration -----
       const gcfg = cfg?.guildCfg || await GuildConfig.findOne({ guildId: message.guild.id }).lean();
       if (!gcfg || !gcfg.staffRoles) {
         return message.reply(":warning: This server has no staff roles configured. Please set them in the dashboard.");
       }
 
-      // Support object or array for staffRoles
+      // Ordered ranks
       const ranks = Array.isArray(gcfg.staffRoles)
         ? gcfg.staffRoles
         : [
@@ -65,10 +64,18 @@ module.exports = {
         );
       }
 
+      // ✅ Remove base staff role once promoted to Retired or above
+      const isRetiredOrAbove = staffRecord.currentRank >= ranks.indexOf(gcfg.staffRoles.retired);
+      if (isRetiredOrAbove && gcfg.baseStaffRole) {
+        const baseStaffRole = message.guild.roles.cache.get(gcfg.baseStaffRole);
+        if (baseStaffRole && member.roles.cache.has(baseStaffRole.id)) {
+          await member.roles.remove(baseStaffRole).catch(() => {});
+        }
+      }
+
       const newRole = message.guild.roles.cache.get(newRoleId);
       const rankName = newRole ? newRole.name : "Unknown Rank";
 
-      // ✅ Unified logging
       const details =
         `**User Promoted:** ${user.tag} (<@${user.id}>)\n` +
         `**Promoted By:** ${message.author.tag} (<@${message.author.id}>)\n` +
