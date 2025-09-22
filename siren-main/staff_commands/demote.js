@@ -9,28 +9,31 @@ module.exports = {
   async execute(message, args, cfg, client) {
     try {
       if (!message.member.permissions.has("ManageRoles")) {
-        return message.reply("❌ You don’t have permission to demote staff.");
+        return message.reply(":x: You don’t have permission to demote staff.");
       }
 
       const user =
         message.mentions.users.first() ||
         (args[0] && await client.users.fetch(args[0]).catch(() => null));
-      if (!user) return message.reply("⚠️ Please mention a user or provide a valid user ID.");
+      if (!user) return message.reply(":warning: Please mention a user or provide a valid user ID.");
 
       const staffRecord = await Staff.findOne({ userId: user.id });
-      if (!staffRecord) return message.reply("❌ That user is not in the staff database.");
+      if (!staffRecord) return message.reply(":x: That user is not in the staff database.");
 
       const member = await message.guild.members.fetch(user.id).catch(() => null);
-      if (!member) return message.reply("⚠️ Could not find that member in this server.");
+      if (!member) return message.reply(":warning: Could not find that member in this server.");
 
       const gcfg = cfg?.guildCfg || await GuildConfig.findOne({ guildId: message.guild.id }).lean();
-      const ranks = gcfg?.staffRoles || [];
+      const ranks = Array.isArray(gcfg?.staffRoles)
+        ? gcfg.staffRoles
+        : Object.values(gcfg?.staffRoles || {}).filter(Boolean);
+
       if (ranks.length < 2) {
-        return message.reply("⚠️ Please set staff roles in the dashboard first.");
+        return message.reply(":warning: Please set staff roles in the dashboard first.");
       }
 
       if (staffRecord.currentRank <= 0) {
-        return message.reply("⚠️ This user is already at the lowest rank.");
+        return message.reply(":warning: This user is already at the lowest rank.");
       }
 
       const currentRoleId = ranks[staffRecord.currentRank];
@@ -40,18 +43,19 @@ module.exports = {
       await staffRecord.save();
 
       const newRoleId = ranks[staffRecord.currentRank];
-      await member.roles.add(newRoleId);
+      await member.roles.add(newRoleId).catch(() => {});
 
       if (gcfg.baseStaffRole) {
         const baseStaffRole = message.guild.roles.cache.get(gcfg.baseStaffRole);
         if (baseStaffRole && !member.roles.cache.has(baseStaffRole.id)) {
-          await member.roles.add(baseStaffRole);
+          await member.roles.add(baseStaffRole).catch(() => {});
         }
       }
 
       const newRankRole = message.guild.roles.cache.get(newRoleId);
       const rankName = newRankRole ? newRankRole.name : "Unknown Rank";
 
+      // ✅ Unified log format
       const details =
         `**User Demoted:** ${user.tag} (<@${user.id}>)\n` +
         `**Demoted By:** ${message.author.tag} (<@${message.author.id}>)\n` +

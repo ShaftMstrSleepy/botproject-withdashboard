@@ -24,15 +24,17 @@ module.exports = {
       if (!member) return message.reply(":warning: Could not find that member in this server.");
 
       const gcfg = cfg?.guildCfg || await GuildConfig.findOne({ guildId: message.guild.id }).lean();
-      if (!gcfg || !Array.isArray(gcfg.staffRoles) || gcfg.staffRoles.length < 2) {
-        return message.reply(":warning: This server has no staffRoles configured. Please set them in the dashboard.");
-      }
+      const ranks = Array.isArray(gcfg?.staffRoles)
+        ? gcfg.staffRoles
+        : Object.values(gcfg?.staffRoles || {}).filter(Boolean);
 
-      const ranks = gcfg.staffRoles;
+      if (!ranks.length) {
+        return message.reply(":warning: This server has no staff roles configured. Please set them in the dashboard.");
+      }
 
       const currentRoleId = ranks[staffRecord.currentRank];
       if (currentRoleId && member.roles.cache.has(currentRoleId)) {
-        await member.roles.remove(currentRoleId);
+        await member.roles.remove(currentRoleId).catch(() => {});
       }
 
       if (staffRecord.currentRank >= ranks.length - 1) {
@@ -43,25 +45,26 @@ module.exports = {
       await staffRecord.save();
 
       const newRoleId = ranks[staffRecord.currentRank];
-      await member.roles.add(newRoleId);
+      await member.roles.add(newRoleId).catch(() => {});
 
       if (gcfg.baseStaffRole && staffRecord.currentRank === ranks.length - 1) {
         const baseStaffRole = message.guild.roles.cache.get(gcfg.baseStaffRole);
         if (baseStaffRole && member.roles.cache.has(baseStaffRole.id)) {
-          await member.roles.remove(baseStaffRole);
+          await member.roles.remove(baseStaffRole).catch(() => {});
         }
       }
 
       const newRole = message.guild.roles.cache.get(newRoleId);
       const rankName = newRole ? newRole.name : "Unknown Rank";
 
-      const promotionDetails =
+      // ✅ Unified log format
+      const details =
         `**User Promoted:** ${user.tag} (<@${user.id}>)\n` +
         `**Promoted By:** ${message.author.tag} (<@${message.author.id}>)\n` +
         `**New Rank:** ${rankName}\n` +
         `**Date & Time:** <t:${Math.floor(Date.now() / 1000)}:F>`;
 
-      await logAction(client, "promotions", `⬆️ **Staff Promoted**\n${promotionDetails}`, message);
+      await logAction(client, "promotions", `⬆️ **Staff Promoted**\n${details}`, message);
       return message.reply(`✅ ${user.tag} has been promoted to ${rankName}.`);
     } catch (err) {
       console.error("Promote command error:", err);
