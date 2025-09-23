@@ -20,6 +20,9 @@ import authRoutes from "./routes/auth.js";
 import guildRoutes from "./routes/guilds.js";
 import appealRoutes from "./routes/appeals.js";
 
+// NEW: Commands route
+import commandsRoutes from "./routes/commands.js";
+
 // Mongo connection
 import { connectDB } from "./config/db.js";
 
@@ -134,6 +137,9 @@ app.use("/auth", authRoutes);
 app.use("/guilds", guildRoutes);
 app.use("/appeals", appealRoutes);
 
+// ----- NEW: mount the commands route
+app.use("/commands", commandsRoutes);
+
 // ----- Error handler -----
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err);
@@ -147,4 +153,3 @@ app.listen(PORT, () =>
     `🌐 Dashboard running behind proxy on ${process.env.BASE_URL || `http://localhost:${PORT}`}`
   )
 );
-
