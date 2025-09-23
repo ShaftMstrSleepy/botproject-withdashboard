@@ -24,42 +24,56 @@ module.exports = {
       if (!member) return message.reply(":warning: Could not find that member in this server.");
 
       const gcfg = cfg?.guildCfg || await GuildConfig.findOne({ guildId: message.guild.id }).lean();
-      if (!gcfg?.staffRoles || Object.keys(gcfg.staffRoles).length === 0) {
-        return message.reply(":warning: This server has no staff roles configured. Please set them in the dashboard first.");
-      }
-
-      const roles = gcfg.staffRoles;
-      const baseId = gcfg.baseStaffRole || roles.base;
-      const ids = {
-        trial: roles.trialMod,
-        mod: roles.mod,
-        sr: roles.seniorMod,
-        retired: roles.retired,
-        mgmt: roles.management
-      };
+      const roles = gcfg?.staffRoles || {};
+      const baseId   = gcfg?.baseStaffRole;
+      const trialId  = roles.trialMod;
+      const modId    = roles.mod;
+      const srId     = roles.seniorMod;
+      const retiredId= roles.retired;
+      const mgmtId   = roles.management;
 
       const has = id => id && member.roles.cache.has(id);
-      const add = async id => id && await member.roles.add(id).catch(() => {});
-      const rem = async id => id && member.roles.cache.has(id) && await member.roles.remove(id).catch(() => {});
-
       let current;
-      if (has(ids.mgmt)) current = "mgmt";
-      else if (has(ids.retired)) current = "retired";
-      else if (has(ids.sr)) current = "sr";
-      else if (has(ids.mod)) current = "mod";
-      else if (has(ids.trial)) current = "trial";
+      if (has(mgmtId)) current = "management";
+      else if (has(retiredId)) current = "retired";
+      else if (has(srId)) current = "seniorMod";
+      else if (has(modId)) current = "mod";
+      else if (has(trialId)) current = "trialMod";
       else return message.reply(":warning: This user does not have a recognized staff rank.");
+
+      const addRole = async id => id && await member.roles.add(id).catch(() => {});
+      const removeRole = async id => id && member.roles.cache.has(id) && await member.roles.remove(id).catch(() => {});
 
       let newRankName = "";
       switch (current) {
-        case "mgmt":    await rem(ids.mgmt);    await add(ids.retired); if (baseId) await rem(baseId); newRankName = "Retired"; break;
-        case "retired": await rem(ids.retired); await add(ids.sr);      if (baseId) await add(baseId); newRankName = "Senior Mod"; break;
-        case "sr":      await rem(ids.sr);      await add(ids.mod);     newRankName = "Mod"; break;
-        case "mod":     await rem(ids.mod);     await add(ids.trial);   newRankName = "Trial Mod"; break;
-        case "trial":   return message.reply(":warning: Cannot demote below Trial Mod. Use removeStaff to remove them from staff.");
+        case "management":
+          await removeRole(mgmtId);
+          await addRole(retiredId);
+          if (baseId) await removeRole(baseId); // ✅ keep base off
+          newRankName = "Retired";
+          break;
+        case "retired":
+          await removeRole(retiredId);
+          await addRole(srId);
+          if (baseId) await addRole(baseId); // ✅ add base back
+          newRankName = "Senior Mod";
+          break;
+        case "seniorMod":
+          await removeRole(srId);
+          await addRole(modId);
+          newRankName = "Mod";
+          break;
+        case "mod":
+          await removeRole(modId);
+          await addRole(trialId);
+          newRankName = "Trial Mod";
+          break;
+        case "trialMod":
+          return message.reply(":warning: Cannot demote below Trial Mod. Use removeStaff to remove them from staff.");
       }
 
-      staffRecord.currentRank = newRankName;
+      const rankMap = ["trialMod", "mod", "seniorMod", "retired", "management"];
+      staffRecord.currentRank = rankMap.indexOf(newRankName.toLowerCase());
       await staffRecord.save();
 
       const details =
