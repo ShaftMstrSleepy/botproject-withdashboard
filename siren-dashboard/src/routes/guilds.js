@@ -99,6 +99,7 @@ router.post("/:guildId/settings", requireAuth, async (req, res) => {
         retired: body.staff_retired || "",
         management: body.staff_management || ""
       },
+      mutedRoleId: body.mutedRoleId || "",
       logChannels: {
         punishments: arr(body.log_punishments),
         promotions:  arr(body.log_promotions),
