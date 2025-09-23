@@ -47,6 +47,18 @@
         </select>
       </label>
     <% }); %>
+
+    <!-- 🔹 NEW Muted Role selector -->
+    <label>Muted Role
+      <select name="mutedRoleId">
+        <option value="">None</option>
+        <% safeRoles.forEach(r => { %>
+          <option value="<%= r.id %>" <%= cfg.mutedRoleId === r.id ? "selected" : "" %>>
+            <%= r.name %>
+          </option>
+        <% }); %>
+      </select>
+    </label>
   </article>
 
   <article>
