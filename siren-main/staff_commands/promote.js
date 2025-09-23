@@ -28,7 +28,7 @@ module.exports = {
         return message.reply(":warning: This server has no staffRoles configured. Please set them in the dashboard.");
       }
 
-      const roles = gcfg.staffRoles;
+      const roles    = gcfg.staffRoles;
       const baseId   = gcfg.baseStaffRole;
       const trialId  = roles.trialMod;
       const modId    = roles.mod;
@@ -45,7 +45,7 @@ module.exports = {
       else if (has(mgmtId)) current = "management";
       else return message.reply(":warning: This user does not have a recognized staff rank.");
 
-      const addRole = async id => id && await member.roles.add(id).catch(() => {});
+      const addRole    = async id => id && await member.roles.add(id).catch(() => {});
       const removeRole = async id => id && member.roles.cache.has(id) && await member.roles.remove(id).catch(() => {});
 
       let newRankName = "";
@@ -63,13 +63,13 @@ module.exports = {
         case "seniorMod":
           await removeRole(srId);
           await addRole(retiredId);
-          if (baseId) await removeRole(baseId); // ✅ remove base staff
+          if (baseId) await removeRole(baseId);           // ✅ Remove base staff when reaching Retired
           newRankName = "Retired";
           break;
         case "retired":
           await removeRole(retiredId);
           await addRole(mgmtId);
-          if (baseId) await removeRole(baseId); // ✅ keep base staff off
+          if (baseId) await removeRole(baseId);           // ✅ Keep base staff off for Management
           newRankName = "Management";
           break;
         default:
