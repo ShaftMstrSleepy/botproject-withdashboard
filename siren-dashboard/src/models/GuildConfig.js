@@ -2,21 +2,27 @@
 import mongoose from "mongoose";
 
 const SirenPlusSchema = new mongoose.Schema({
-  active: { type: Boolean, default: false },          // subscription active now
-  plan: { type: String, enum: ["roles", "troll", ""], default: "" }, // selected plan
-  purchaseCode: { type: String, default: "" },        // used to attribute purchases
-  cancelAt: { type: Date, default: null },            // if user cancels, keep rights until this time
+  active: { type: Boolean, default: false },
+  plan: { type: String, enum: ["roles", "troll", ""], default: "" },
+  purchaseCode: { type: String, default: "" },
+  cancelAt: { type: Date, default: null },
   features: {
-    roles: { type: Boolean, default: false },         // custom role commands
-    troll: { type: Boolean, default: false }          // troll commands
+    roles: { type: Boolean, default: false },
+    troll: { type: Boolean, default: false }
   }
 }, { _id: false });
 
 const CustomRoleSchema = new mongoose.Schema({
   name: { type: String, required: true },
   roleId: { type: String, required: true },
-  price: { type: Number, default: 0 },                // price in Plutus
+  price: { type: Number, default: 0 },
   enabled: { type: Boolean, default: true }
+}, { _id: false });
+
+/* ✅ NEW: per-command settings for toggles & role limits */
+const CommandSettingsSchema = new mongoose.Schema({
+  enabled: { type: Boolean, default: true },   // is the command on/off
+  roles:   { type: [String], default: [] }     // role IDs allowed to use
 }, { _id: false });
 
 const GuildConfigSchema = new mongoose.Schema({
@@ -34,6 +40,14 @@ const GuildConfigSchema = new mongoose.Schema({
     seniorMod:  { type: String, default: "" },
     retired:    { type: String, default: "" },
     management: { type: String, default: "" }
+  },
+
+  /* ✅ NEW: per-command toggle & permissions map
+     e.g. { "ban": {enabled:true, roles:["123","456"] }, ... } */
+  commandSettings: {
+    type: Map,
+    of: CommandSettingsSchema,
+    default: {}
   },
 
   logChannels: {

@@ -26,7 +26,21 @@ module.exports = {
 
       const gcfg = cfg?.guildCfg || await GuildConfig.findOne({ guildId: message.guild.id }).lean();
 
-      // ✅ Updated ranks assignment to safely handle object/array
+      // 🔹 NEW
+      const cmdCfg = gcfg?.commandSettings?.get?.("removestaff") || gcfg?.commandSettings?.removestaff;
+      if (cmdCfg) {
+        if (cmdCfg.enabled === false) {
+          return message.reply(":no_entry_sign: This command is disabled in the dashboard.");
+        }
+        if (Array.isArray(cmdCfg.roles) && cmdCfg.roles.length) {
+          const allowed = cmdCfg.roles.some(rid => message.member.roles.cache.has(rid));
+          if (!allowed) {
+            return message.reply(":no_entry_sign: You don’t have permission to use this command.");
+          }
+        }
+      }
+      // 🔹 END
+
       const ranks = Array.isArray(gcfg?.staffRoles)
         ? gcfg.staffRoles
         : Object.values(gcfg?.staffRoles || {}).filter(Boolean);

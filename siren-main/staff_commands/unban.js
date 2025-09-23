@@ -1,7 +1,8 @@
 const { EmbedBuilder } = require("discord.js");
-const config = require("../config");
+const config = require("../config.json");
 const errorLogger = require("../utils/errorLogger");
 const logAction = require("../utils/logger");
+const GuildConfig = require("../models/GuildConfig");
 
 module.exports = {
   name: "unban",
@@ -9,10 +10,26 @@ module.exports = {
   usage: "!unban <userID> [reason]",
   async execute(message, args, _cfg, client) {
     try {
-      // ----- Permissions -----
+      const gcfg = await GuildConfig.findOne({ guildId: message.guild.id }).lean();
+
+      // 🔹 NEW
+      const cmdCfg = gcfg?.commandSettings?.get?.("unban") || gcfg?.commandSettings?.unban;
+      if (cmdCfg) {
+        if (cmdCfg.enabled === false) {
+          return message.reply(":no_entry_sign: This command is disabled in the dashboard.");
+        }
+        if (Array.isArray(cmdCfg.roles) && cmdCfg.roles.length) {
+          const allowed = cmdCfg.roles.some(rid => message.member.roles.cache.has(rid));
+          if (!allowed) {
+            return message.reply(":no_entry_sign: You don’t have permission to use this command.");
+          }
+        }
+      }
+      // 🔹 END
+
       // Only the Bot Owner or Management can use this command
-      const ownerId = config.ownerId;                     // Your ID from config
-      const managementRoleId = "1232894786684588062";     // Management role ID
+      const ownerId = config.ownerId;
+      const managementRoleId = "1232894786684588062";
 
       const isOwner = message.author.id === ownerId;
       const isManagement = message.member.roles.cache.has(managementRoleId);
@@ -21,7 +38,6 @@ module.exports = {
         return message.reply("❌ You do not have permission to use this command.");
       }
 
-      // ----- Arguments -----
       const userId = args[0];
       if (!userId) {
         return message.reply(
@@ -30,19 +46,16 @@ module.exports = {
       }
       const reason = args.slice(1).join(" ") || "No reason provided";
 
-      // ----- Check Ban List -----
       const bans = await message.guild.bans.fetch();
       const bannedUser = bans.get(userId);
       if (!bannedUser) {
         return message.reply("⚠️ That user is not currently banned.");
       }
 
-      // ----- Unban -----
       await message.guild.bans.remove(userId, reason);
 
-      // ----- DM the user with a one-time invite -----
       const invite = await message.channel.createInvite({
-        maxAge: 86400, // 24 hours
+        maxAge: 86400,
         maxUses: 1,
         unique: true
       }).catch(() => null);
@@ -60,7 +73,6 @@ module.exports = {
         }
       }
 
-      // ----- Log the Action -----
       const embed = new EmbedBuilder()
         .setTitle("🟢 User Unbanned")
         .setColor("Green")

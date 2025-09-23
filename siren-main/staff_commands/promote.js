@@ -24,6 +24,22 @@ module.exports = {
       if (!member) return message.reply(":warning: Could not find that member in this server.");
 
       const gcfg = cfg?.guildCfg || await GuildConfig.findOne({ guildId: message.guild.id }).lean();
+
+      // 🔹 NEW
+      const cmdCfg = gcfg?.commandSettings?.get?.("promote") || gcfg?.commandSettings?.promote;
+      if (cmdCfg) {
+        if (cmdCfg.enabled === false) {
+          return message.reply(":no_entry_sign: This command is disabled in the dashboard.");
+        }
+        if (Array.isArray(cmdCfg.roles) && cmdCfg.roles.length) {
+          const allowed = cmdCfg.roles.some(rid => message.member.roles.cache.has(rid));
+          if (!allowed) {
+            return message.reply(":no_entry_sign: You don’t have permission to use this command.");
+          }
+        }
+      }
+      // 🔹 END
+
       if (!gcfg?.staffRoles) {
         return message.reply(":warning: This server has no staffRoles configured. Please set them in the dashboard.");
       }
@@ -63,13 +79,13 @@ module.exports = {
         case "seniorMod":
           await removeRole(srId);
           await addRole(retiredId);
-          if (baseId) await removeRole(baseId);           // ✅ Remove base staff when reaching Retired
+          if (baseId) await removeRole(baseId);
           newRankName = "Retired";
           break;
         case "retired":
           await removeRole(retiredId);
           await addRole(mgmtId);
-          if (baseId) await removeRole(baseId);           // ✅ Keep base staff off for Management
+          if (baseId) await removeRole(baseId);
           newRankName = "Management";
           break;
         default:

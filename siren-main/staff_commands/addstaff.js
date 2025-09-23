@@ -16,18 +16,35 @@ module.exports = {
         (args[0] && await client.users.fetch(args[0]).catch(() => null));
       if (!user) return message.reply(":warning: Please mention a user or provide their ID.");
 
-      const existing = await Staff.findOne({ userId: user.id });
-      if (existing) return message.reply(":x: This user is already staff.");
-
-      // Fetch guild configuration
+      // --- Fetch guild configuration ---
       const gcfg = cfg?.guildCfg || await GuildConfig.findOne({ guildId: message.guild.id }).lean();
       if (!gcfg) return message.reply(":x: No guild configuration found for this server.");
+
+      // 🔹 NEW: Per-command toggle & role-restriction check
+      const cmdCfg = gcfg?.commandSettings?.get?.("addstaff") || gcfg?.commandSettings?.addstaff;
+      if (cmdCfg) {
+        if (cmdCfg.enabled === false) {
+          return message.reply(":no_entry_sign: This command is disabled in the dashboard.");
+        }
+        if (Array.isArray(cmdCfg.roles) && cmdCfg.roles.length) {
+          const allowed = cmdCfg.roles.some(rid => message.member.roles.cache.has(rid));
+          if (!allowed) {
+            return message.reply(":no_entry_sign: You don’t have permission to use this command.");
+          }
+        }
+      }
+      // 🔹 END
+
+      const existing = await Staff.findOne({ userId: user.id });
+      if (existing) return message.reply(":x: This user is already staff.");
 
       const baseRoleId = gcfg.staffRoles?.base || gcfg.baseStaffRole;
       const trialRoleId = gcfg.staffRoles?.trialMod;
 
       if (!baseRoleId) {
-        return message.reply(":warning: A base staff role has not been set in the dashboard for this server. Please configure it before using this command.");
+        return message.reply(
+          ":warning: A base staff role has not been set in the dashboard for this server. Please configure it before using this command."
+        );
       }
 
       const member = await message.guild.members.fetch(user.id).catch(() => null);
@@ -55,14 +72,16 @@ module.exports = {
       const newStaff = new Staff({ userId: user.id, currentRank: 0 });
       await newStaff.save();
 
-      // ✅ Unified logging format
+      // Unified logging format
       const details =
         `**User Added:** ${user.tag} (<@${user.id}>)\n` +
         `**Added By:** ${message.author.tag} (<@${message.author.id}>)\n` +
         `**Date & Time:** <t:${Math.floor(Date.now() / 1000)}:F>`;
 
       await logAction(message.client, "promotions", `🟢 **Staff Added**\n${details}`, message);
-      return message.reply(`✅ ${user.tag} has been added as staff and assigned the base staff role${trialRoleId ? " and trial mod role" : ""}.`);
+      return message.reply(
+        `✅ ${user.tag} has been added as staff and assigned the base staff role${trialRoleId ? " and trial mod role" : ""}.`
+      );
     } catch (err) {
       console.error("AddStaff command error:", err);
       return message.reply("❌ There was an error adding this staff member.");

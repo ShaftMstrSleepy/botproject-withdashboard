@@ -1,0 +1,102 @@
+<!-- src/views/commands.ejs -->
+<div class="page-header">
+  <h2>Commands</h2>
+  <p class="description">
+    Manage what commands can be used, and what roles can use them
+  </p>
+</div>
+
+<!-- Base Commands -->
+<section class="command-section">
+  <h3>Base Commands</h3>
+  <p class="note">These commands are always enabled.</p>
+  <ul class="command-list">
+    <% ["Status", "Help", "Plutus Balance"].forEach(cmd => { %>
+      <li class="command-item">
+        <span><%= cmd %></span>
+        <span class="locked">Always On</span>
+      </li>
+    <% }) %>
+  </ul>
+</section>
+
+<!-- Staff Commands -->
+<section class="command-section">
+  <h3>Staff Commands</h3>
+  <ul class="command-list">
+    <% [
+      "Add Staff","Ban","Demote","Mute","Promote",
+      "Remove Staff","Set Rank","Staff Help",
+      "Staff Info","Un-Ban","Un-Mute","Warn"
+    ].forEach(cmd => { %>
+      <li class="command-item">
+        <span><%= cmd %></span>
+        <div class="command-actions">
+          <!-- Toggle -->
+          <label class="switch">
+            <input type="checkbox" name="staff_<%= cmd.replace(/\s+/g,'').toLowerCase() %>" />
+            <span class="slider round"></span>
+          </label>
+          <!-- Hamburger for permissions -->
+          <button type="button" class="perm-btn" data-command="<%= cmd %>">
+            ☰
+          </button>
+        </div>
+      </li>
+    <% }) %>
+  </ul>
+</section>
+
+<!-- Custom Role Commands -->
+<section class="command-section">
+  <h3>
+    Custom Role Commands
+    <span class="siren-plus">Siren Plus</span>
+  </h3>
+  <ul class="command-list">
+    <% [
+      "Add Custom Role",
+      "Add Co Owner",
+      "Claim Role",
+      "Custom Role",
+      "Custom Role Add",
+      "Custom Role Take",
+      "List Roles",
+      "Purge Role",
+      "Role",
+      "Role Members",
+      "Transfer Role"
+    ].forEach(cmd => { %>
+      <li class="command-item">
+        <span><%= cmd %></span>
+        <div class="command-actions">
+          <% if (cmd === "Add Custom Role") { %>
+            <label class="switch">
+              <input type="checkbox" name="custom_addcustomrole" />
+              <span class="slider round"></span>
+            </label>
+            <button type="button" class="perm-btn" data-command="<%= cmd %>">
+              ☰
+            </button>
+          <% } else { %>
+            <span class="locked">Base Command</span>
+          <% } %>
+        </div>
+      </li>
+    <% }) %>
+  </ul>
+</section>
+
+<!-- Permission Modal -->
+<div id="permissionModal" class="modal hidden">
+  <div class="modal-content">
+    <h4 id="modalTitle">Permissions</h4>
+    <p>Limit this command to certain roles:</p>
+    <select id="roleSelect" class="multi" multiple>
+      <% roles.forEach(r => { %>
+        <option value="<%= r.id %>"><%= r.name %></option>
+      <% }) %>
+    </select>
+    <button id="savePerms">Save</button>
+  </div>
+</div>

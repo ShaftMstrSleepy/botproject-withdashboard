@@ -43,6 +43,16 @@ const GuildConfigSchema = new mongoose.Schema({
 
   // example flag to delay appeals (hours)
   appealDelayHours: { type: Number, default: 24 },
+
+  // 🔹 Per-command enable/disable + role restrictions
+  commandSettings: {
+    type: Map,
+    of: new mongoose.Schema({
+      enabled: { type: Boolean, default: true },
+      roles:   { type: [String], default: [] }   // role IDs allowed to use the command
+    }, { _id: false }),
+    default: () => ({})
+  }
 }, { timestamps: true });
 
 module.exports = mongoose.model('GuildConfig', GuildConfigSchema);

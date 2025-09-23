@@ -24,6 +24,22 @@ module.exports = {
       if (!member) return message.reply(":warning: Could not find that member in this server.");
 
       const gcfg = cfg?.guildCfg || await GuildConfig.findOne({ guildId: message.guild.id }).lean();
+
+      // 🔹 NEW: Per-command toggle & role-restriction check
+      const cmdCfg = gcfg?.commandSettings?.get?.("demote") || gcfg?.commandSettings?.demote;
+      if (cmdCfg) {
+        if (cmdCfg.enabled === false) {
+          return message.reply(":no_entry_sign: This command is disabled in the dashboard.");
+        }
+        if (Array.isArray(cmdCfg.roles) && cmdCfg.roles.length) {
+          const allowed = cmdCfg.roles.some(rid => message.member.roles.cache.has(rid));
+          if (!allowed) {
+            return message.reply(":no_entry_sign: You don’t have permission to use this command.");
+          }
+        }
+      }
+      // 🔹 END NEW
+
       const roles = gcfg?.staffRoles || {};
       const baseId   = gcfg?.baseStaffRole;
       const trialId  = roles.trialMod;
