@@ -11,9 +11,9 @@
   <h3>Base Commands</h3>
   <p class="note">These commands are always enabled.</p>
   <ul class="command-list">
-    <% ["Status", "Help", "Plutus Balance"].forEach(cmd => { %>
+    <% (baseCommands || ["Status", "Help", "Plutus Balance"]).forEach(cmd => { %>
       <li class="command-item">
-        <span><%= cmd %></span>
+        <span><%= cmd.name || cmd %></span>
         <span class="locked">Always On</span>
       </li>
     <% }) %>
@@ -24,21 +24,23 @@
 <section class="command-section">
   <h3>Staff Commands</h3>
   <ul class="command-list">
-    <% [
-      "Add Staff","Ban","Demote","Mute","Promote",
-      "Remove Staff","Set Rank","Staff Help",
-      "Staff Info","Un-Ban","Un-Mute","Warn"
-    ].forEach(cmd => { %>
+    <% (staffCommands || [
+      {name:"Add Staff"},{name:"Ban"},{name:"Demote"},{name:"Mute"},{name:"Promote"},
+      {name:"Remove Staff"},{name:"Set Rank"},{name:"Staff Help"},
+      {name:"Staff Info"},{name:"Un-Ban"},{name:"Un-Mute"},{name:"Warn"}
+    ]).forEach(cmd => { %>
       <li class="command-item">
-        <span><%= cmd %></span>
+        <span><%= cmd.name || cmd %></span>
         <div class="command-actions">
           <!-- Toggle -->
           <label class="switch">
-            <input type="checkbox" name="staff_<%= cmd.replace(/\s+/g,'').toLowerCase() %>" />
+            <input type="checkbox"
+                   name="staff_<%= (cmd.name || cmd).replace(/\s+/g,'').toLowerCase() %>"
+                   <%= cmd.toggleable === false ? "disabled" : "" %> />
             <span class="slider round"></span>
           </label>
           <!-- Hamburger for permissions -->
-          <button type="button" class="perm-btn" data-command="<%= cmd %>">
+          <button type="button" class="perm-btn" data-command="<%= cmd.name || cmd %>">
             ☰
           </button>
         </div>
@@ -54,28 +56,28 @@
     <span class="siren-plus">Siren Plus</span>
   </h3>
   <ul class="command-list">
-    <% [
-      "Add Custom Role",
-      "Add Co Owner",
-      "Claim Role",
-      "Custom Role",
-      "Custom Role Add",
-      "Custom Role Take",
-      "List Roles",
-      "Purge Role",
-      "Role",
-      "Role Members",
-      "Transfer Role"
-    ].forEach(cmd => { %>
+    <% (customRoleCommands || [
+      {name:"Add Custom Role"},
+      {name:"Add Co Owner"},
+      {name:"Claim Role"},
+      {name:"Custom Role"},
+      {name:"Custom Role Add"},
+      {name:"Custom Role Take"},
+      {name:"List Roles"},
+      {name:"Purge Role"},
+      {name:"Role"},
+      {name:"Role Members"},
+      {name:"Transfer Role"}
+    ]).forEach(cmd => { %>
       <li class="command-item">
-        <span><%= cmd %></span>
+        <span><%= cmd.name || cmd %></span>
         <div class="command-actions">
-          <% if (cmd === "Add Custom Role") { %>
+          <% if ((cmd.name || cmd) === "Add Custom Role") { %>
             <label class="switch">
               <input type="checkbox" name="custom_addcustomrole" />
               <span class="slider round"></span>
             </label>
-            <button type="button" class="perm-btn" data-command="<%= cmd %>">
+            <button type="button" class="perm-btn" data-command="<%= cmd.name || cmd %>">
               ☰
             </button>
           <% } else { %>
@@ -93,7 +95,7 @@
     <h4 id="modalTitle">Permissions</h4>
     <p>Limit this command to certain roles:</p>
     <select id="roleSelect" class="multi" multiple>
-      <% roles.forEach(r => { %>
+      <% (roles || []).forEach(r => { %>
         <option value="<%= r.id %>"><%= r.name %></option>
       <% }) %>
     </select>
